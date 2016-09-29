@@ -36,7 +36,7 @@ The function completes when all the aync-iteration function calls have completed
 * A single Number - the async function is invoked with the integer values 0 to Number-1
 * An array or Object of async functions - each function in the array is invoked asynchronously. In this case the third parameter must be omitted.
 
-Example: mapping an object
+** Example: mapping an object **
 
 	var map = require('afn/map')() ;
 
@@ -48,7 +48,7 @@ Example: mapping an object
 	// All done - mapped contains the new object with all the elements "incremeneted"
 
 
-Example: map an array of URLs to their content
+** Example: map an array of URLs to their content **
 
 	var map = require('afn/map')() ;
 	var http = require('async-http-lib') ; // A third party module that does HTTP as async functions
@@ -59,7 +59,7 @@ Example: map an array of URLs to their content
 	}) ;
 	// All done - mapped is the new array containing the bodies
 
-Example: iterate through a set of integer values and do something asynchronous with each one.
+** Example: iterate through a set of integer values and do something asynchronous with each one **
 
 	// Use nodent.map & http
 	var map = require('afn/map')() ;
@@ -71,7 +71,7 @@ Example: iterate through a set of integer values and do something asynchronous w
 	}) ;
 	// All done - mapped is the new array containing the bodies
 
-Example: execute arbitrary async functions in parallel and return when they are all complete, just like Promise.all()
+** Example: execute arbitrary async functions in parallel and return when they are all complete, just like Promise.all() **
 
 	var map = require('afn/map')() ;
 
@@ -79,7 +79,7 @@ Example: execute arbitrary async functions in parallel and return when they are 
 
 	// All done - mapped is an new array containing the async-returns
 
-Example: execute arbitrary labelled async functions in parallel and return when they are all complete
+** Example: execute arbitrary labelled async functions in parallel and return when they are all complete **
 
 	var map = require('afn/map')() ;
 
@@ -90,9 +90,10 @@ Example: execute arbitrary labelled async functions in parallel and return when 
 
 In the latter two cases, where there is only an single parameter, the async return value from `map` is a corresponding array or object to the parameter where each member has been resolved if a Promise, or passed through unchanged if not.
 
-The order of execution is not guaranteed (as with all calls to map), but the completion routine will only be called when all async functions have finished either via a return or exception.  the first function (at index [0]) and the async-return of the second function (at index [1]). There is no programmatic limit to the number of async functions that can be passed in the array. Note that the functions have no useful parameters (use a closure or wrap the function if necessary). The order of execution is not guaranteed (as with all calls to map), but the completion routine will only be called when all async functions have finished either via a return or exception.
+The order of execution is not guaranteed (as with all calls to map), but the completion routine will only be called when all async functions have finished either via a return or exception. There is no programmatic limit to the number of async functions that can be passed in the array. Note that the functions have no useful parameters (use a closure or wrap the function if necessary).
 
-### Exceptions in mapped functions
+Exceptions in mapped functions
+------------------------------
 By default, in the event of an error or exception in the async-mapping function, the error value is substitued in the mapped object or array. This works well since all the exceptions will be instances of the JavaScript Error() type, and so they can be easily tested for in the mapped object after completion.
 
 Alternatively, if instantiated with the option `throwOnError`, if any of the async invocations throw an exception, `map()` will throw a MapError() when all the functions have completed, with a member called `results` containing the other results. To use this option:
@@ -124,8 +125,7 @@ The returned memoizedFunction is an `async function` with the same signature as 
 	await memoizedFunction(...)
 
 
-Example
--------
+** Example **
 
 	// An expensive function that retrieves user details from a database
 	async function fetchAndDisplayUserInfo(userid,element) { ... }
