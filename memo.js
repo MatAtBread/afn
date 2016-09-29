@@ -93,7 +93,7 @@ module.exports = function(config){
         function hash(o) {
             if (!crypto)
                 return undefined ;
-            const h = crypto.createHash('sha256');
+            var h = crypto.createHash('sha256');
             hashCode(h,o,new Map()) ;
             return h.digest('latin1') ;
         }
