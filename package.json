@@ -1,0 +1,28 @@
+{
+  "name": "afn",
+  "version": "1.0.0",
+  "description": "async/await function utilities",
+  "main": "index.js",
+  "scripts": {
+    "test": "cd test ; npm test ; cd .."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MatAtBread/afn.git"
+  },
+  "keywords": [
+    "ES8",
+    "async",
+    "function",
+    "utiities"
+  ],
+  "author": "MatAtBread",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/MatAtBread/afn/issues"
+  },
+  "homepage": "https://github.com/MatAtBread/afn#readme",
+  "dependencies": {
+    "nodent": ">=2.6.10"
+  }
+}
