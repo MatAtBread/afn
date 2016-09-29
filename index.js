@@ -6,7 +6,7 @@ module.exports = function(config){
     if (!config) config = {} ;
     var result = Object.create(null) ;
     ['map','memo'].forEach(function(f){
-        result[f] = require('./lib/'+f)(config[f])
+        result[f] = require('./'+f)(config[f])
     }) ;
     return result ;
 } ;
