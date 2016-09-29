@@ -16,10 +16,11 @@ module.exports = function(config){
     "use strict";
     var caches = [] ;
     config = config || {} ;
+    config.createCache = config.createCache || function(){ return new Map() } ;
     var crypto = config.crypto || require('crypto');
 
     return function memo(afn,options) {
-        var cache = Object.create(null) ;
+        var cache = config.createCache() ;
         caches.push(cache) ;
         if (!options) options = {} ;
 
@@ -30,26 +31,28 @@ module.exports = function(config){
                 return afn.apply(this,arguments) ;
             }
 
-            if (cache[key]) {
-                if (!cache[key].expires || cache[key].expires > Date.now())
-                    return cache[key].result ;
-                delete cache[key] ;
+            var entry = cache.get(key) ;
+            if (entry) {
+                if (!entry.expires || entry.expires > Date.now())
+                    return entry.result ;
+                cache.delete(key) ;
             }
             var result = afn.apply(this,arguments) ;
-            cache[key] = {
+            var entry = {
                 expires: 0,
                 result: result
             } ;
+            cache.set(key,entry) ;
             result.then(function(r){
-                if (options.ttl && cache[key])
-                    cache[key].expires = options.ttl + Date.now() ;
+                if (options.ttl)
+                    entry.expires = options.ttl + Date.now() ;
             },function(x){
-                delete cache[key] ;
+                cache.delete(key) ;
             }) ;
             return result ;
         };
         memoed.clearCache = function(){
-            var cache = Object.create(null) ;
+            var cache = config.createCache() ;
             return memoed ;
         };
         return memoed ;
@@ -91,9 +94,9 @@ module.exports = function(config){
     function cleanCaches() {
         var now = Date.now();
         caches.forEach(function(c){
-            Object.keys(c).forEach(function(k){
-                if (c[k].expires && c[k].expires < now)
-                    delete c[k] ;
+            c.forEach(function(entry,k){
+                if (entry.expires && entry.expires < now)
+                    c.delete(k) ;
             }) ;
         }) ;
     }
