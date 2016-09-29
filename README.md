@@ -36,7 +36,7 @@ The function completes when all the aync-iteration function calls have completed
 * A single Number - the async function is invoked with the integer values 0 to Number-1
 * An array or Object of async functions - each function in the array is invoked asynchronously. In this case the third parameter must be omitted.
 
-** Example: mapping an object **
+### Example: mapping an object
 
 	var map = require('afn/map')() ;
 
@@ -48,7 +48,7 @@ The function completes when all the aync-iteration function calls have completed
 	// All done - mapped contains the new object with all the elements "incremeneted"
 
 
-** Example: map an array of URLs to their content **
+### Example: map an array of URLs to their content
 
 	var map = require('afn/map')() ;
 	var http = require('async-http-lib') ; // A third party module that does HTTP as async functions
@@ -59,7 +59,7 @@ The function completes when all the aync-iteration function calls have completed
 	}) ;
 	// All done - mapped is the new array containing the bodies
 
-** Example: iterate through a set of integer values and do something asynchronous with each one **
+### Example: iterate through a set of integer values and do something asynchronous with each one
 
 	// Use nodent.map & http
 	var map = require('afn/map')() ;
@@ -71,7 +71,7 @@ The function completes when all the aync-iteration function calls have completed
 	}) ;
 	// All done - mapped is the new array containing the bodies
 
-** Example: execute arbitrary async functions in parallel and return when they are all complete, just like Promise.all() **
+### Example: execute arbitrary async functions in parallel and return when they are all complete, just like Promise.all()
 
 	var map = require('afn/map')() ;
 
@@ -79,7 +79,7 @@ The function completes when all the aync-iteration function calls have completed
 
 	// All done - mapped is an new array containing the async-returns
 
-** Example: execute arbitrary labelled async functions in parallel and return when they are all complete **
+### Example: execute arbitrary labelled async functions in parallel and return when they are all complete
 
 	var map = require('afn/map')() ;
 
@@ -125,7 +125,7 @@ The returned memoizedFunction is an `async function` with the same signature as 
 	await memoizedFunction(...)
 
 
-** Example **
+### Example
 
 	// An expensive function that retrieves user details from a database
 	async function fetchAndDisplayUserInfo(userid,element) { ... }
