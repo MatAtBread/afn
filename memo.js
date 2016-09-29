@@ -17,7 +17,7 @@ module.exports = function(config){
     var caches = [] ;
     config = config || {} ;
     config.createCache = config.createCache || function(){ return new Map() } ;
-    var crypto = config.crypto || (require && require('crypto')) || { createHash:basicCreateHash };
+    var crypto = config.crypto || (typeof require==="function" && require('crypto')) || { createHash:basicCreateHash };
 
     return function memo(afn,options) {
         if (!options) options = {} ;
