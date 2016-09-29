@@ -2,7 +2,11 @@
 
 /* Each function is in a separate file for easy pulling apart if you only want a subset */
 
-module.exports = {
-    memo:require('./lib/memo'),
-    map:require('./lib/map')
+module.exports = function(config){
+    if (!config) config = {} ;
+    var result = Object.create(null) ;
+    ['map','memo'].forEach(function(f){
+        result[f] = require('./lib/'+f)(config[f])
+    }) ;
+    return result ;
 } ;

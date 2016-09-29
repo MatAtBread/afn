@@ -8,12 +8,12 @@ Installation:
 	
 Inclusion:
 
-	var afn = require('afn') ;
+	var afn = require('afn')(options) ;
 	
 Specific calls can be required individually:
 
-	var map = require('afn/map')() ;
-	var memo = require('afn/memo') ;
+	var map = require('afn/map')(mapOptions) ;
+	var memo = require('afn/memo')(memoOptions) ;
 
 Contents
 --------

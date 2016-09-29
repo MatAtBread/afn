@@ -1,6 +1,6 @@
 "use nodent";
 
-var afn = require('..') ;
+var afn = require('..')() ;
 
 async function sleep(t) {
     setTimeout(function(){ async return },t) ;
@@ -27,9 +27,9 @@ console.log(await memo(11,"a")) ;
 console.log(await memo(10,"a")) ;
 console.log(await memo(11,"a")) ;
 
-console.log(await Promise.all([
-   memo(10,"a"),                               
-   memo(10,"a"),                               
-   memo(11,"a"),                               
-   memo(11,"a")                               
-])) ;
+console.log(await afn.map({
+   a10:memo(10,"a"),                               
+   a10again:memo(10,"again"),                               
+   a11:memo(11,"a"),                               
+   a11again:memo(11,"again")                               
+})) ;
