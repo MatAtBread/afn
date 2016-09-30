@@ -108,11 +108,14 @@ module.exports = function(config){
 
     function basicCreateHash(){
         var n = 0 ;
-        var codes = [[],[],[],[]] ;
+        var codes = ["0","0","0","0"] ;
         return {
-            update:function(u){ codes[(n++)%codes.length].push(u) },
+            update:function(u){
+                n = (n+1)condes.length ;
+                codes[n] = subHash(codes[n]+u) ; 
+            },
             digest:function(){
-                return codes.map(function(str){return subHash(str.join()) }).join('');
+                return codes.join('');
             }
         }
     }
