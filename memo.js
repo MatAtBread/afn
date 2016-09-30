@@ -71,7 +71,10 @@ module.exports = function(config){
                 var spec = keySpec(self,args,fn) ;
                 if (spec===undefined)
                     return spec ;
-                return hash(spec) ;
+                
+                if (spec instanceof Object)
+                    return (typeof spec)+"/"+hash(spec) ;
+                return (typeof spec)+"/"+spec.toString() ;
             }
             return hash({self:self,args:args}) ;
         }
@@ -109,13 +112,13 @@ module.exports = function(config){
     function subHash(o) {
         var h = 0, s = o.toString() ;
         for (var i=0; i<s.length; i++)
-            h = (((h << 5) - h) + s.charCodeAt(i)) & 0xFFFFFFFF;
+            h = (h*2333 + s.charCodeAt(i)) & 0xFFFFFFFF;
         return h.toString(36) ;
     }
 
     function basicCreateHash(){
         var n = 0 ;
-        var codes = ["0","0","0","0"] ;
+        var codes = ["0","0","0","0","0","0"] ;
         return {
             update:function(u){
                 n = (n+1)%codes.length ;
