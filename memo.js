@@ -47,7 +47,7 @@ module.exports = function(config){
                 cache.delete(key) ;
             }
             var result = afn.apply(this,arguments) ;
-            var entry = Object.create(null,{resut:{value:result}}) ;
+            var entry = Object.create(null,{result:{value:result}}) ;
             cache.set(key,entry) ;
             result.then(function(r){
                 if (options.ttl) {
