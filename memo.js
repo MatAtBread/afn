@@ -22,6 +22,9 @@ module.exports = function(config){
     return function memo(afn,options) {
         if (!options) options = {} ;
 
+        if (options.ttl !==undefined && typeof options.ttl!=="number")
+            throw new Error("ttl must be undefined or a number") ;
+        
         var cache = (options.createCache || config.createCache)() ;
         caches.push(cache) ;
 
@@ -64,8 +67,12 @@ module.exports = function(config){
         return memoed ;
 
         function getKey(self,args,keySpec,fn) {
-            if (typeof keySpec==='function')
-                return hash(keySpec(self,args,fn)) ;
+            if (typeof keySpec==='function') {
+                var spec = keySpec(self,args,fn) ;
+                if (spec===undefined)
+                    return spec ;
+                return hash(spec) ;
+            }
             return hash({self:self,args:args}) ;
         }
 
