@@ -111,7 +111,7 @@ module.exports = function(config){
         var codes = ["0","0","0","0"] ;
         return {
             update:function(u){
-                n = (n+1)condes.length ;
+                n = (n+1)%codes.length ;
                 codes[n] = subHash(codes[n]+u) ; 
             },
             digest:function(){
