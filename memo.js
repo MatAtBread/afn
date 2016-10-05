@@ -1,3 +1,5 @@
+'use nodent-promises';
+
 /* 'memoize' an async function so that that multiple calls with 
  * matching* parameters return the same async result in a Promise
  * for the specified amount of time.
@@ -25,17 +27,21 @@ module.exports = function(config){
         if (options.ttl !==undefined && typeof options.ttl!=="number")
             throw new Error("ttl must be undefined or a number") ;
         
-        var cache = (options.createCache || config.createCache)() ;
+        var afnID = hash(afn.toString()) ;
+        var cache = (options.createCache || config.createCache)(afnID) ;
         caches.push(cache) ;
 
-        var memoed = function() {
-            var key = getKey(this,arguments,options.key,afn) ;
+        var memoed = async function() {
+            var key = getKey(this,arguments,options.key,afn)+afnID ;
             if (key===undefined || key===null) {
                 // Not cachable - maybe 'crypto' isn't defined?
                 return afn.apply(this,arguments) ;
             }
 
             var entry = cache.get(key) ;
+            if (entry && typeof entry.then==="function")
+                entry = await entry ;
+            
             if (entry) {
                 if (!entry.expires || entry.expires > Date.now()) {
                     if (entry.result && entry.result.then)
@@ -48,20 +54,20 @@ module.exports = function(config){
             }
             var result = afn.apply(this,arguments) ;
             var entry = Object.create(null,{result:{value:result}}) ;
-            cache.set(key,entry) ;
+            cache.set(key,entry,options.ttl) ;
             result.then(function(r){
                 if (options.ttl) {
                     entry.expires = options.ttl + Date.now() ;
                 }
                 entry.data = r ;
-                cache.set(key,entry) ;
+                cache.set(key,entry,options.ttl) ;
             },function(x){
                 cache.delete(key) ;
             }) ;
             return result ;
         };
         memoed.clearCache = function(){
-            cache.keys().forEach(function(k){ cache.delete(k) }) ;
+            (await Promise.resolve(cache.keys())).forEach(function(k){ cache.delete(k) }) ;
             return memoed ;
         };
         return memoed ;
