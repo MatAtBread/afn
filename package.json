@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "cd test ; npm test ; cd ..",
-    "install": "./node_modules/nodent/nodent.js --dest=dist/ --noruntime memo.js map.js"
+    "install": "nodentjs --dest=dist/ --noruntime memo.js map.js"
   },
   "repository": {
     "type": "git",
@@ -24,6 +24,6 @@
   },
   "homepage": "https://github.com/MatAtBread/afn#readme",
   "dependencies": {
-    "nodent": ">=2.6.10"
+    "nodent": ">=2.6.11"
   }
 }
