@@ -18,7 +18,7 @@ module.exports = function(config){
     "use strict";
     var caches = [] ;
     config = config || {} ;
-    config.createCache = config.createCache || function(){ return new Map() } ;
+    config.createCache = config.createCache || function(cacheID){ return null } ;
     var crypto = config.crypto || (typeof require==="function" && require('crypto')) || { createHash:basicCreateHash };
 
     return function memo(afn,options) {
@@ -28,7 +28,37 @@ module.exports = function(config){
             throw new Error("ttl must be undefined or a number") ;
         
         var afnID = hash(afn.toString()) ;
-        var cache = (options.createCache || config.createCache)(afnID) ;
+        var backingCache = (options.createCache || config.createCache)(afnID) ;
+        var localCache = new Map() ;
+        var cache = {
+            get:async function(key) {
+                var l = localCache.get(key) ;
+                if (l) return l ;
+                if (backingCache) return backingCache.get(key) ;
+            },
+            set:async function(key,data,ttl) {
+                localCache.set(key,data) ;
+                if (backingCache) backingCache.set(key,data,ttl) ;
+            },
+            delete:async function(key) {
+                localCache.delete(key) ;
+                if (backingCache) backingCache.delete(key) ;
+            },
+            clear:async function() {
+                localCache.clear() ;
+                if (backingCache) {
+                    if (backingCache.clear)
+                        backingCache.clear() ;
+                    else {
+                        (await Promise.resolve(backingCache.keys())).forEach(function(k){ backingCache.delete(k) }) ;
+                    }
+                }
+            },
+            keys:async function() {
+                if (backingCache) return backingCache.keys() ;
+                return localCache.keys() ;
+            }
+        };
         caches.push(cache) ;
 
         var memoed = async function() {
@@ -47,13 +77,13 @@ module.exports = function(config){
                     if (entry.result && entry.result.then)
                         return entry.result ;
                     if ('data' in entry)
-                        return Promise.resolve(entry.data) ;
+                        return entry.data ;
                 }
                 // This entry has expited or contains no pending or concrete data
                 cache.delete(key) ;
             }
             var result = afn.apply(this,arguments) ;
-            var entry = Object.create(null,{result:{value:result}}) ;
+            entry = Object.create(null,{result:{value:result}}) ;
             cache.set(key,entry,options.ttl) ;
             result.then(function(r){
                 if (options.ttl) {
@@ -66,8 +96,12 @@ module.exports = function(config){
             }) ;
             return result ;
         };
-        memoed.clearCache = function(){
-            (await Promise.resolve(cache.keys())).forEach(function(k){ cache.delete(k) }) ;
+        memoed.clearCache = async function(){
+            if (cache.clear) {
+                cache.clear() ;
+            } else {
+                (await Promise.resolve(cache.keys())).forEach(function(k){ cache.delete(k) }) ;
+            }
             return memoed ;
         };
         return memoed ;
@@ -84,36 +118,36 @@ module.exports = function(config){
             }
             return hash({self:self,args:args}) ;
         }
-
-        function hashCode(h,o,m) {
-            if (o===undefined) {
-                h.update("undefined") ;
-                return  ;
-            }
-            if (o===null) {
-                h.update("null") ;
-                return ;
-            }
-            if (o instanceof Object){
-                if (m.get(o))
-                    return ;
-                m.set(o,o) ;
-                Object.keys(o).sort().map(function(k) { 
-                    return hashCode(h,k)+hashCode(h,o[k],m) 
-                }) ;
-            } else {
-                h.update((typeof o)+"/"+o.toString()) ;
-            }
-        }
-
-        function hash(o) {
-            if (!crypto)
-                return undefined ;
-            var h = crypto.createHash('sha256');
-            hashCode(h,o,new Map()) ;
-            return h.digest('latin1') ;
-        }
     };
+
+    function hashCode(h,o,m) {
+        if (o===undefined) {
+            h.update("undefined") ;
+            return  ;
+        }
+        if (o===null) {
+            h.update("null") ;
+            return ;
+        }
+        if (o instanceof Object){
+            if (m.get(o))
+                return ;
+            m.set(o,o) ;
+            Object.keys(o).sort().map(function(k) { 
+                return hashCode(h,k)+hashCode(h,o[k],m) 
+            }) ;
+        } else {
+            h.update((typeof o)+"/"+o.toString()) ;
+        }
+    }
+
+    function hash(o) {
+        if (!crypto)
+            return undefined ;
+        var h = crypto.createHash('sha256');
+        hashCode(h,o,new Map()) ;
+        return h.digest(config.hashEncoding || 'latin1') ;
+    }
 
     function subHash(o) {
         var h = 0, s = o.toString() ;

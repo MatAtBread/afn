@@ -4,7 +4,8 @@
   "description": "async/await function utilities",
   "main": "index.js",
   "scripts": {
-    "test": "cd test ; npm test ; cd .."
+    "test": "cd test ; npm test ; cd ..",
+    "install": "./node_modules/nodent/nodent.js --dest=dist/ --noruntime memo.js map.js"
   },
   "repository": {
     "type": "git",
