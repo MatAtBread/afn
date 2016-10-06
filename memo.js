@@ -62,11 +62,13 @@ module.exports = function(config){
         caches.push(cache) ;
 
         var memoed = async function() {
-            var key = getKey(this,arguments,options.key,afn)+afnID ;
+            var key = getKey(this,arguments,options.key,afn) ;
             if (key===undefined || key===null) {
                 // Not cachable - maybe 'crypto' isn't defined?
                 return afn.apply(this,arguments) ;
             }
+            
+            key += afnID ;
 
             var entry = cache.get(key) ;
             if (entry && typeof entry.then==="function")
