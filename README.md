@@ -18,9 +18,9 @@ Specific calls can be required individually:
 
 Contents
 --------
-  * [map](#map)
-	* [memo](#memo)
-	* [queue](#queue)
+* [map](#map)
+* [memo](#memo)
+* [Queue](#queue)
 
 map
 ===
@@ -150,7 +150,7 @@ that clears the cache for subsequent calls:
 		// Subsequent calls to displayUserInfo with the same id within 10 minutes will produce the same result
 ```
 
-queue
+Queue
 =====
 
 Creates a queue with an async iterator:
