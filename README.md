@@ -107,65 +107,79 @@ Instances of 'map' are independent of each other - you can require() both the th
 memo
 ====
 
+```
 	const memoizedFunction = afn.memo(_asyncFunction_, {
-		ttl:0,					/* Maximum time in milliseconds to memoize the result */
+		ttl:0,								/* Maximum time in milliseconds to memoize the result */
 		key:function(self,		/* The 'this' value passed to the asyncFunction */
-			args,				/* The 'arguments' option passed to the asyncFunction */
-			asyncFunction) {	/* The original 'afn' value */
+			args,								/* The 'arguments' option passed to the asyncFunction */
+			asyncFunction) {		/* The original 'afn' value */
 				/* Return an object that disambigutes between calls. The default implementation is all
 				enumerable values within self and args. Returning 'undefined' means don't cache */
 				return {args:args,self:self} ;
 			}  
 	}) ;
+```
 
-The returned memoizedFunction is an `async function` with the same signature as `_asyncFunction_`. It also has the an additional member function (not async) that clears the cache for subsequent calls:
+The returned memoizedFunction is an `async function` with the same signature as `_asyncFunction_`. It also has the an additional member function (not async)
+that clears the cache for subsequent calls:
 
-	// Clear the cache for a specific function
-	memoizedFunction.clearCache() ;
-	// This will always call the underlying _asyncFunction_
-	await memoizedFunction(...)
-
+```
+		// Clear the cache for a specific function
+		memoizedFunction.clearCache() ;
+		// This will always call the underlying _asyncFunction_
+		await memoizedFunction(...)
+```
 
 ### Example
 
-	// An expensive function that retrieves user details from a database
-	async function fetchAndDisplayUserInfo(userid,element) { ... }
+```
+		// An expensive function that retrieves user details from a database
+		async function fetchAndDisplayUserInfo(userid,element) { ... }
 
-	// Memoize it based only on the userid - the destination HTML element doesn't matter
-	const displayUserInfo = afn.memo(fetchAndDisplayUserInfo,{
-		ttl:10*60*1000,	// Cache for 10 minutes
-		key(self,args,fn){
-			return args[0] ; // Don't care about 'element', or the value of 'this'
-		}
-	})
+		// Memoize it based only on the userid - the destination HTML element doesn't matter
+		const displayUserInfo = afn.memo(fetchAndDisplayUserInfo,{
+			ttl:10*60*1000,	// Cache for 10 minutes
+			key(self,args,fn){
+				return args[0] ; // Don't care about 'element', or the value of 'this'
+			}
+		})
 
-		...
+			...
 
-	await displayUserInfo(id,document.getElementById("user-info"))
-	// Subsequent calls to displayUserInfo with the same id within 10 minutes will produce the same result
+		await displayUserInfo(id,document.getElementById("user-info"))
+		// Subsequent calls to displayUserInfo with the same id within 10 minutes will produce the same result
+```
 
 queue
 =====
 
-Creates a queu with an async iterator:
+Creates a queue with an async iterator:
 
 ### Example
 
-	var AsyncQueue = require('afn/queue')() ;
+```
+		async function handleQueue(q) {
+		    for (var i of q) {
+		        console.log("pop7", await i, q.length());
+		        await sleep(200);
+		    }
+		}
 
-  // Create the queue, and populate it via callbacks, streams or events
-	var q = new AsyncQueue();
-	window.addEventListener('mousemove', function (e) {
-	    log("add", e.x);
-	    q.add(e.x);
-	});
+		/* ES5 equivalent with for...of construct */
+		async function handleQueueES5(q) {
+		    var i,iterator = q.iterator() ;
+		    while (!(i = iterator.next()).done) {
+		        console.log("pop5", await i.value, q.length());
+		        await sleep(200);
+		    };
+		}
 
-  // Handle the queue in a 'for-of' loop, awaiting each item
-	async function handleQueue(q) {
-	    for (var i of q) {
-	        console.log("pop", await i, q.length());
-	        await sleep(200);
-	    }
-	}
+		var q = new AsyncQueue();
+		window.addEventListener('mousemove', function (e) {
+		    log("add", e.x);
+		    q.add(e.x);
+		});
 
-	handleQueue(q);
+		handleQueue(q);
+		// handleQueueES5(q);
+```
