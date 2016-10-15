@@ -1,5 +1,3 @@
-'use nodent-promises';
-
 /* create an queue with async consumption, e.g.
 
   var q = new AsyncQueue();

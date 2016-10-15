@@ -118,7 +118,6 @@ memo
 			}  
 	}) ;
 
-
 The returned memoizedFunction is an `async function` with the same signature as `_asyncFunction_`. It also has the an additional member function (not async) that clears the cache for subsequent calls:
 
 	// Clear the cache for a specific function
@@ -148,14 +147,20 @@ The returned memoizedFunction is an `async function` with the same signature as 
 queue
 =====
 
+Creates a queu with an async iterator:
+
 ### Example
 
-	async function sleep(t) {
-	    setTimeout(function () {
-	         async return;
-	    }, t);
-	}
+	var AsyncQueue = require('afn/queue')() ;
 
+  // Create the queue, and populate it via callbacks, streams or events
+	var q = new AsyncQueue();
+	window.addEventListener('mousemove', function (e) {
+	    log("add", e.x);
+	    q.add(e.x);
+	});
+
+  // Handle the queue in a 'for-of' loop, awaiting each item
 	async function handleQueue(q) {
 	    for (var i of q) {
 	        console.log("pop", await i, q.length());
@@ -163,9 +168,4 @@ queue
 	    }
 	}
 
-	var q = new AsyncQueue();
-	window.addEventListener('mousemove', function (e) {
-	    log("add", e.x);
-	    q.add(e.x);
-	});
 	handleQueue(q);

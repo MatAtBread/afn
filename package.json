@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "cd test ; npm test ; cd ..",
-    "install": "nodentjs --dest=dist/ --noruntime memo.js map.js"
+    "install": "nodentjs --dest=dist/ --noruntime memo.js map.js queue.js"
   },
   "repository": {
     "type": "git",
