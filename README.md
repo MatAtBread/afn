@@ -1,24 +1,26 @@
 # afn
 
-`async function` utilities 
+`async function` utilities
 
 Installation:
 
 	npm i --save afn
-	
+
 Inclusion:
 
 	var afn = require('afn')(options) ;
-	
+
 Specific calls can be required individually:
 
 	var map = require('afn/map')(mapOptions) ;
 	var memo = require('afn/memo')(memoOptions) ;
+	var Queue = require('afn/queue')(queueOptions) ;
 
 Contents
 --------
   * [map](#map)
-  * [memo](#memo)
+	* [memo](#memo)
+	* [queue](#queue)
 
 map
 ===
@@ -104,13 +106,13 @@ Instances of 'map' are independent of each other - you can require() both the th
 
 memo
 ====
-	
+
 	const memoizedFunction = afn.memo(_asyncFunction_, {
 		ttl:0,					/* Maximum time in milliseconds to memoize the result */
 		key:function(self,		/* The 'this' value passed to the asyncFunction */
 			args,				/* The 'arguments' option passed to the asyncFunction */
 			asyncFunction) {	/* The original 'afn' value */
-				/* Return an object that disambigutes between calls. The default implementation is all 
+				/* Return an object that disambigutes between calls. The default implementation is all
 				enumerable values within self and args. Returning 'undefined' means don't cache */
 				return {args:args,self:self} ;
 			}  
@@ -129,7 +131,7 @@ The returned memoizedFunction is an `async function` with the same signature as 
 
 	// An expensive function that retrieves user details from a database
 	async function fetchAndDisplayUserInfo(userid,element) { ... }
-	
+
 	// Memoize it based only on the userid - the destination HTML element doesn't matter
 	const displayUserInfo = afn.memo(fetchAndDisplayUserInfo,{
 		ttl:10*60*1000,	// Cache for 10 minutes
@@ -137,9 +139,33 @@ The returned memoizedFunction is an `async function` with the same signature as 
 			return args[0] ; // Don't care about 'element', or the value of 'this'
 		}
 	})
-	
+
 		...
-		
+
 	await displayUserInfo(id,document.getElementById("user-info"))
 	// Subsequent calls to displayUserInfo with the same id within 10 minutes will produce the same result
 
+queue
+=====
+
+### Example
+
+	async function sleep(t) {
+	    setTimeout(function () {
+	         async return;
+	    }, t);
+	}
+
+	async function handleQueue(q) {
+	    for (var i of q) {
+	        console.log("pop", await i, q.length());
+	        await sleep(200);
+	    }
+	}
+
+	var q = new AsyncQueue();
+	window.addEventListener('mousemove', function (e) {
+	    log("add", e.x);
+	    q.add(e.x);
+	});
+	handleQueue(q);

@@ -5,7 +5,7 @@ require('nodent')();
 module.exports = function(config){
     if (!config) config = {} ;
     var result = Object.create(null) ;
-    ['map','memo'].forEach(function(f){
+    ['map','memo','queue'].forEach(function(f){
         result[f] = require('./'+f)(config[f])
     }) ;
     return result ;
