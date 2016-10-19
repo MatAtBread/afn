@@ -1,3 +1,5 @@
+"use strict";
+
 /* create an queue with async consumption, e.g.
 
   var q = new AsyncQueue();
@@ -12,28 +14,30 @@
 
   // Add _items, for example on event driven things like http requests or mouse moves
   q.add(object) ;
-*/
-
+ */
 function AsyncQueue() {
-    "use strict";
     this._items = [];
 }
 
-AsyncQueue.prototype._setReady = function () {
-    var self = this;
-    function defer(resolve) {
-        self._ready = resolve;
-    }
-
-    return new Promise(defer);
-};
 function iterator() {
     var self = this;
     return {
         next: function () {
+            var value ;
+            if (self._items.length)
+                value = Promise.resolve(self._items.shift()) ;
+            else {
+                if (!self._ready) {
+                    var resolve ;
+                    self._ready = new Promise(function(r){
+                        self._resolve = r ;
+                    }) ;
+                }
+                value = self._ready ;
+            }
             return {
                 done: false,
-                value: self.value()
+                value: value
             };
         }
     };
@@ -44,14 +48,13 @@ if (typeof Symbol !== "undefined") {
 } else {
     AsyncQueue.prototype.iterator = iterator;
 }
-AsyncQueue.prototype.value = function () {
-    return this._items.length ? Promise.resolve(this._items.shift()) : this._setReady();
-};
+
 AsyncQueue.prototype.add = function (item) {
     if (!this._items.length && this._ready) {
-        var resolve = this._ready;
-        this._ready = null;
-        resolve(item);
+        var p = this._resolve ;
+        delete this._ready ;
+        delete this._resolve ;
+        p(item) ;
     } else {
         this._items.push(item);
     }
@@ -63,5 +66,5 @@ AsyncQueue.prototype.clear = function () {
     this._items = [];
 };
 module.exports = function(config) {
-  return AsyncQueue ;
+    return AsyncQueue ;
 }
