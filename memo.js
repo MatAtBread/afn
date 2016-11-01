@@ -76,7 +76,7 @@ module.exports = function(config){
             },
             keys:async function() {
                 var keys = [] ;
-                if (backingCache) for (var bk of await backingCache.keys())
+                if (backingCache) for (var bk of await Promise.resolve(backingCache.keys()))
                     keys.push(bk) ;
                 else
                     return localCache.keys() ;
