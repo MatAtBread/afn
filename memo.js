@@ -14,9 +14,27 @@
  *  The default behaviour is to hash concrete values in the objects 'this' and 'args', ignoring any values attached to the asyncFunction
  */
 
+var caches = [] ;
+
+async function cleanCaches() {
+    var now = Date.now();
+    for (var i=0; i<caches.length; i++) {
+        var cache = caches[i] ;
+        var keys = await cache.keys() ;
+        for (var k of keys) {
+            var entry = await cache.get(k) ;
+            if (entry && entry.expires && entry.expires < now)
+                cache.delete(k) ;
+        }
+    } 
+}
+
+var timer = setInterval(cleanCaches,60000) ;
+if (timer.unref)
+    timer.unref()
+
 module.exports = function(config){
     "use strict";
-    var caches = [] ;
     config = config || {} ;
     config.createCache = config.createCache || function(cacheID){ return null } ;
     var crypto = config.crypto || (typeof require==="function" && require('crypto')) || { createHash:basicCreateHash };
@@ -57,8 +75,16 @@ module.exports = function(config){
                 }
             },
             keys:async function() {
-                if (backingCache) return backingCache.keys() ;
-                return localCache.keys() ;
+                var keys = [] ;
+                if (backingCache) for (var bk of await backingCache.keys())
+                    keys.push(bk) ;
+                else
+                    return localCache.keys() ;
+                
+                for (var k of localCache.keys())
+                    if (keys.indexOf(k)<0)
+                        keys.push(k) ;
+                return keys ;
             }
         };
         caches.push(cache) ;
@@ -173,18 +199,4 @@ module.exports = function(config){
             }
         }
     }
-    
-    function cleanCaches() {
-        var now = Date.now();
-        caches.forEach(function(c){
-            c.forEach(function(entry,k){
-                if (entry.expires && entry.expires < now)
-                    c.delete(k) ;
-            }) ;
-        }) ;
-    }
-
-    var timer = setInterval(cleanCaches,60000) ;
-    if (timer.unref)
-        timer.unref()
 } ;
