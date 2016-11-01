@@ -14,30 +14,30 @@
  *  The default behaviour is to hash concrete values in the objects 'this' and 'args', ignoring any values attached to the asyncFunction
  */
 
-var caches = [] ;
-
-async function cleanCaches() {
-    var now = Date.now();
-    for (var i=0; i<caches.length; i++) {
-        var cache = caches[i] ;
-        var keys = await cache.keys() ;
-        for (var k of keys) {
-            var entry = await cache.get(k) ;
-            if (entry && entry.expires && entry.expires < now)
-                cache.delete(k) ;
-        }
-    } 
-}
-
-var timer = setInterval(cleanCaches,60000) ;
-if (timer.unref)
-    timer.unref()
-
 module.exports = function(config){
     "use strict";
     config = config || {} ;
     config.createCache = config.createCache || function(cacheID){ return null } ;
     var crypto = config.crypto || (typeof require==="function" && require('crypto')) || { createHash:basicCreateHash };
+
+    var caches = [] ;
+
+    async function cleanCaches() {
+        var now = Date.now();
+        for (var i=0; i<caches.length; i++) {
+            var cache = caches[i] ;
+            var keys = await cache.keys() ;
+            for (var k of keys) {
+                var entry = await cache.get(k) ;
+                if (entry && entry.expires && entry.expires < now)
+                    cache.delete(k) ;
+            }
+        } 
+    }
+
+    var timer = setInterval(cleanCaches,60000) ;
+    if (timer.unref)
+        timer.unref()
 
     return function memo(afn,options) {
         if (!options) options = {} ;
