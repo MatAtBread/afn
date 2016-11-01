@@ -37,8 +37,10 @@ module.exports = function(config){
                 if (backingCache) return backingCache.get(key) ;
             },
             set:async function(key,data,ttl) {
-                localCache.set(key,data) ;
-                if (ttl && backingCache) backingCache.set(key,data,ttl) ;
+                if (ttl) {
+                    localCache.set(key,data) ;
+                    if (backingCache) backingCache.set(key,data,ttl) ;
+                }
             },
             'delete':async function(key) {
                 localCache.delete(key) ;

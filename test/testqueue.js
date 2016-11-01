@@ -1,5 +1,6 @@
-"use nodent" ;
+'use nodent-promise {"noRuntime":true}' ;
 
+global.Promise = require('nodent').Thenable ;
 async function sleep(t) {
     setTimeout(function(){ async return }, t) ;
 }
@@ -7,17 +8,20 @@ debugger ;
 var afn = require('..')() ;
 var AsyncQueue = afn.queue ;
 
-var q = new AsyncQueue() ;
+var theQueue = new AsyncQueue() ;
 
+async function handle() {
+    for (var x of theQueue) {
+        console.log(await x) ;
+//        await sleep(10) ;
+    }
+}
+
+handle(theQueue) ;
 var n = 0 ;
 setInterval(function(){
-    n += 1 ;
-    q.add(n);
-    q.add(n);
-    q.add(n);
-},500) ;
+    theQueue.add(n++);
+    theQueue.add(n++);
+    theQueue.add(n++);
+},50) ;
 
-for (var x of q) {
-    console.log(await x) ;
-    await sleep(100) ;
-}

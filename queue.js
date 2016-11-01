@@ -28,7 +28,6 @@ function iterator() {
                 value = Promise.resolve(self._items.shift()) ;
             else {
                 if (!self._ready) {
-                    var resolve ;
                     self._ready = new Promise(function(r){
                         self._resolve = r ;
                     }) ;
