@@ -15,7 +15,6 @@
  */
 
 module.exports = function(config){
-    "use strict";
     config = config || {} ;
     config.createCache = config.createCache || function(cacheID){ return null } ;
     var crypto = config.crypto || (typeof require==="function" && require('crypto')) || { createHash:basicCreateHash };
