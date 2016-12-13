@@ -26,7 +26,8 @@ module.exports = function(config){
         for (var i=0; i<caches.length; i++) {
             var cache = caches[i] ;
             var keys = await cache.keys() ;
-            for (var k of keys) {
+            for (var i in keys) {
+                var k = keys[i] ;
                 var entry = await cache.get(k) ;
                 if (entry && entry.expires && entry.expires < now)
                     cache.delete(k) ;
@@ -74,16 +75,21 @@ module.exports = function(config){
                 }
             },
             keys:async function() {
-                var keys = [] ;
-                if (backingCache) for (var bk of await Promise.resolve(backingCache.keys()))
-                    keys.push(bk) ;
-                else
+                if (backingCache) {
+                    var keys = [] ;
+                    var backingKeys = await Promise.resolve(backingCache.keys()) ;
+                    for (var bk in backingKeys)
+                        keys.push(backingKeys[bk]) ;
+                    var localKeys = localCache.keys() ;
+                    for (var i in localKeys) {
+                        var k = localKeys[i] ;
+                        if (keys.indexOf(k)<0)
+                            keys.push(k) ;
+                    }
+                    return keys ;
+                } else {
                     return localCache.keys() ;
-                
-                for (var k of localCache.keys())
-                    if (keys.indexOf(k)<0)
-                        keys.push(k) ;
-                return keys ;
+                }
             }
         };
         caches.push(cache) ;
