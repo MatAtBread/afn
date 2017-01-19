@@ -1,11 +1,11 @@
 {
   "name": "afn",
-  "version": "1.0.15",
+  "version": "1.0.16",
   "description": "async/await function utilities",
   "main": "index.js",
   "scripts": {
     "test": "cd test ; npm test ; cd ..",
-    "install": "nodentjs --dest=dist/ --noruntime memo.js map.js queue.js"
+    "install": "nodentjs --dest=dist/ --noruntime memo.js map.js queue.js hash.js"
   },
   "repository": {
     "type": "git",
