@@ -168,9 +168,13 @@ module.exports = function(config){
             if (m.get(o))
                 return ;
             m.set(o,o) ;
-            Object.keys(o).sort().map(function(k) { 
-                return hashCode(h,k)+hashCode(h,o[k],m) 
-            }) ;
+            if (config.unOrderedArrays && Array.isArray(o)) {
+                h.update("array/"+o.length+"/"+o.map(hash).sort()) ;
+            } else {
+                Object.keys(o).sort().map(function(k) { 
+                    return hashCode(h,k)+hashCode(h,o[k],m) 
+                }) ;
+            }
         } else {
             h.update((typeof o)+"/"+o.toString()) ;
         }
