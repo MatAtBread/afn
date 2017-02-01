@@ -94,6 +94,10 @@ module.exports = function(config){
         };
         caches.push(cache) ;
 
+        // If this async function already has a named memo, use that one
+        if (options.link && afn[options.link])
+            return afn[options.link] ;
+        
         var memoed = async function() {
             var key = getKey(this,arguments,options.key,afn) ;
             if (key===undefined || key===null) {
@@ -139,6 +143,10 @@ module.exports = function(config){
             }
             return memoed ;
         };
+        if (options.link) {
+            Object.defineProperty(memoed,options.link,afn) ;
+            Object.defineProperty(afn,options.link,memoed) ;
+        }
         return memoed ;
 
         function getKey(self,args,keySpec,fn) {
