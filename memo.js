@@ -1,4 +1,5 @@
 'use nodent-promises';
+'use strict';
 
 /* 'memoize' an async function so that that multiple calls with 
  * matching* parameters return the same async result in a Promise
@@ -98,7 +99,7 @@ module.exports = function(config){
         if (options.link && afn[options.link])
             return afn[options.link] ;
         
-        var memoed = async function() {
+        async function memoed() {
             var key = getKey(this,arguments,options.key,afn) ;
             if (key===undefined || key===null) {
                 // Not cachable - maybe 'crypto' isn't defined?
@@ -110,7 +111,7 @@ module.exports = function(config){
             var entry = cache.get(key) ;
             if (entry && typeof entry.then==="function")
                 entry = await entry ;
-            
+
             if (entry) {
                 if (!entry.expires || entry.expires > Date.now()) {
                     if (entry.result && entry.result.then)
