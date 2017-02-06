@@ -119,22 +119,40 @@ module.exports = function(config){
                     if ('data' in entry)
                         return entry.data ;
                 }
-                // This entry has expited or contains no pending or concrete data
+                // This entry has expired or contains no pending or concrete data
                 cache.delete(key) ;
             }
-            var result = afn.apply(this,arguments) ;
-            entry = Object.create(null,{result:{value:result}}) ;
-            cache.set(key,entry,options.ttl) ;
-            result.then(function(r){
+
+            // Create a promise and cache it. Do this _before_ running the underlying function
+            // to minimize the timing-hole where two processes attempt to populate the same
+            // cache entry. Note this is not possible (and unnecessary) in a single, unclustered
+            // process, but the point of afn/memo is to provide a framework for multi-process or
+            // clustered processes to avoid unnecessary re-entrancy
+            // Note: to eliminate the hole altogether, the get() on line:111 would need to be 
+            // an atomic "get-and-set-promise-if-empty" returning a Promise that can be externally resolved/rejected.
+            var resolveEntry,rejectEntry ;
+            entry = Object.create(null,{
+                result:{
+                    value:new Promise(function(r,x){
+                        resolveEntry = r ;
+                        rejectEntry = x ;
+                    })
+            }}) ;
+            cache.set(key,entry,options.ttl) ; // The early set means other requests get suspended
+            
+            // Now run the underlying async function, then resolve the Promise in the cache
+            afn.apply(this,arguments).then(function(r){
                 if (options.ttl) {
                     entry.expires = options.ttl + Date.now() ;
                 }
                 entry.data = r ;
                 cache.set(key,entry,options.ttl) ;
+                resolveEntry(r) ;
             },function(x){
-                cache.delete(key) ;
+                rejectEntry(x) ;
             }) ;
-            return result ;
+            
+            return entry.result ;
         };
         memoed.clearCache = async function(){
             if (cache.clear) {
