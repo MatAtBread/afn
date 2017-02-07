@@ -43,6 +43,19 @@ module.exports = function(config){
     return function memo(afn,options) {
         if (!options) options = {} ;
 
+        function deferred() {
+            var d = {
+                result:{ value:null },
+                resolve:{ value:null },
+                reject:{ value:null }
+            } ;
+            d.result.value = new Promise(function(r,x){
+                d.resolve.value = r ;
+                d.reject.value = x ;
+            }) ;
+            return Object.create(null,d) ;
+        }
+        
         if (options.ttl !==undefined && typeof options.ttl!=="number")
             throw new Error("ttl must be undefined or a number") ;
         
@@ -50,15 +63,27 @@ module.exports = function(config){
         var backingCache = (options.createCache || config.createCache)(afnID) ;
         var localCache = new Map() ;
         var cache = {
-            get:async function(key) {
+            get:function(key) {
+                // This is like an 'async function' (ie. it returns a Promise), _except_ it
+                // can synchronously return undefined meaning there is no cache entry and 
+                // no hope of getting one asynchronously. This fact is used by the caller
+                // to indicate that the entry should be set synchronously, to implement
+                // a critcal-section lock
                 var l = localCache.get(key) ;
-                if (l) return l ;
-                if (backingCache) return backingCache.get(key) ;
+                if (l!==null && l!==undefined) 
+                    return l ;
+                if (backingCache) {
+                    var entry = deferred() ;
+                    localCache.set(key,entry.result) ;
+                    backingCache.get(key).then(entry.resolve,entry.reject);
+                    return entry.result ;
+                }
+                // Else return undefined...we don't have (and won't get) an entry for this item
             },
             set:async function(key,data,ttl) {
                 if (ttl) {
                     localCache.set(key,data) ;
-                    if (backingCache) backingCache.set(key,data,ttl) ;
+                    if (backingCache) await backingCache.set(key,data,ttl) ;
                 }
             },
             'delete':async function(key) {
@@ -114,13 +139,17 @@ module.exports = function(config){
 
             if (entry) {
                 if (!entry.expires || entry.expires > Date.now()) {
-                    if (entry.result && entry.result.then)
-                        return entry.result ;
                     if ('data' in entry)
                         return entry.data ;
+                    if (entry.result && entry.result.then)
+                        return entry.result ;
                 }
                 // This entry has expired or contains no pending or concrete data
-                cache.delete(key) ;
+                await cache.delete(key) ;
+            } else {
+                var inProgress = localCache.get(key) ;
+                if (inProgress && !inProgress.then)
+                    return inProgress.result ;
             }
 
             // Create a promise and cache it. Do this _before_ running the underlying function
@@ -130,15 +159,8 @@ module.exports = function(config){
             // clustered processes to avoid unnecessary re-entrancy
             // Note: to eliminate the hole altogether, the get() on line:111 would need to be 
             // an atomic "get-and-set-promise-if-empty" returning a Promise that can be externally resolved/rejected.
-            var resolveEntry,rejectEntry ;
-            entry = Object.create(null,{
-                result:{
-                    value:new Promise(function(r,x){
-                        resolveEntry = r ;
-                        rejectEntry = x ;
-                    })
-            }}) ;
-            cache.set(key,entry,options.ttl) ; // The early set means other requests get suspended
+            entry = deferred() ;
+            await cache.set(key,entry,options.ttl) ; // The early set means other requests get suspended
             
             // Now run the underlying async function, then resolve the Promise in the cache
             afn.apply(this,arguments).then(function(r){
@@ -146,10 +168,11 @@ module.exports = function(config){
                     entry.expires = options.ttl + Date.now() ;
                 }
                 entry.data = r ;
-                cache.set(key,entry,options.ttl) ;
-                resolveEntry(r) ;
+                await cache.set(key,entry,options.ttl) ;
+                entry.resolve(r) ;
             },function(x){
-                rejectEntry(x) ;
+                await cache.delete(key) ;
+                entry.reject(x) ;
             }) ;
             
             return entry.result ;
