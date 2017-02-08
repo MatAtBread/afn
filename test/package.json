@@ -4,6 +4,7 @@
   "description": "async/await function utilities",
   "main": "",
   "scripts": {
+      "test": "nodentjs ./test.js",
       "test-memo": "../node_modules/nodent/nodent.js testmemo.js",
       "test-queue": "../node_modules/nodent/nodent.js testqueue.js"
   },

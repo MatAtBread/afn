@@ -16,33 +16,13 @@
  */
 
 module.exports = function(config){
-    config = config || {} ;
-    config.createCache = config.createCache || function(cacheID){ return null } ;
-    var crypto = config.crypto || (typeof require==="function" && require('crypto')) || { createHash:basicCreateHash };
-
-    var caches = [] ;
-
-    async function cleanCaches() {
-        var now = Date.now();
-        for (var i=0; i<caches.length; i++) {
-            var cache = caches[i] ;
-            var keys = await cache.keys() ;
-            for (var i in keys) {
-                var k = keys[i] ;
-                var entry = await cache.get(k) ;
-                if (entry && entry.expires && entry.expires < now)
-                    cache.delete(k) ;
-            }
-        } 
-    }
-
-    var timer = setInterval(cleanCaches,60000) ;
-    if (timer.unref)
-        timer.unref()
-
-    return function memo(afn,options) {
+    function memo(afn,options) {
         if (!options) options = {} ;
 
+        function isThenable(f) {
+            return f && typeof f.then === "function" ;
+        }
+        
         function deferred() {
             var d = {
                 result:{ value:null },
@@ -75,7 +55,12 @@ module.exports = function(config){
                 if (backingCache) {
                     var entry = deferred() ;
                     localCache.set(key,entry.result) ;
-                    backingCache.get(key).then(entry.resolve,entry.reject);
+                    var back = backingCache.get(key);
+                    if (isThenable(back)) {
+                        back.then(entry.resolve,entry.reject);
+                    } else {
+                        entry.resolve(back) ;
+                    }
                     return entry.result ;
                 }
                 // Else return undefined...we don't have (and won't get) an entry for this item
@@ -83,7 +68,11 @@ module.exports = function(config){
             set:async function(key,data,ttl) {
                 if (ttl) {
                     localCache.set(key,data) ;
-                    if (backingCache) await backingCache.set(key,data,ttl) ;
+                    if (backingCache) {
+                        var wait = backingCache.set(key,data,ttl) ;
+                        if (isThenable(wait))
+                            wait = await wait ;
+                    }
                 }
             },
             'delete':async function(key) {
@@ -134,14 +123,14 @@ module.exports = function(config){
             key += afnID ;
 
             var entry = cache.get(key) ;
-            if (entry && typeof entry.then==="function")
+            if (isThenable(entry))
                 entry = await entry ;
 
             if (entry) {
                 if (!entry.expires || entry.expires > Date.now()) {
                     if ('data' in entry)
                         return entry.data ;
-                    if (entry.result && entry.result.then)
+                    if (isThenable(entry.result))
                         return entry.result ;
                 }
                 // This entry has expired or contains no pending or concrete data
@@ -245,17 +234,52 @@ module.exports = function(config){
         return h.toString(36) ;
     }
 
-    function basicCreateHash(){
-        var n = 0 ;
-        var codes = ["0","0","0","0","0","0"] ;
-        return {
-            update:function(u){
-                n = (n+1)%codes.length ;
-                codes[n] = subHash(codes[n]+u) ; 
-            },
-            digest:function(){
-                return codes.join('');
+    var hashes = {
+        basicCreateHash: function(){
+            var n = 0 ;
+            var codes = ["0","0","0","0","0","0"] ;
+            return {
+                update:function(u){
+                    n = (n+1)%codes.length ;
+                    codes[n] = subHash(codes[n]+u) ; 
+                },
+                digest:function(){
+                    return codes.join('');
+                }
             }
         }
+    } ;
+
+    config = config || {} ;
+    config.createCache = config.createCache || function(cacheID){ return null } ;
+    var caches = [] ;
+    var crypto ;
+    switch (typeof config.crypto) {
+    case 'string':
+        crypto = { createHash: hashes[config.crypto]} ;
+        break ;
+    case 'object':
+        crypto = config.crypto ;
     }
+    if (!crypto)
+        crypto = (typeof require==="function" && require('crypto')) || { createHash:hashes.basicCreateHash };
+
+    var timer = setInterval(async function cleanCaches() {
+        var now = Date.now();
+        for (var i=0; i<caches.length; i++) {
+            var cache = caches[i] ;
+            var keys = await Promise.resolve(cache.keys()) ;
+            for (var i in keys) {
+                var k = keys[i] ;
+                var entry = await Promise.resolve(cache.get(k)) ;
+                if (entry && entry.expires && entry.expires < now)
+                    cache.delete(k) ;
+            }
+        } 
+    } ,60000) ;
+    
+    if (timer.unref)
+        timer.unref()
+        
+    return memo ;
 } ;
