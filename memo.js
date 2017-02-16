@@ -15,6 +15,8 @@
  *  The default behaviour is to hash concrete values in the objects 'this' and 'args', ignoring any values attached to the asyncFunction
  */
 
+var os = require('os') ;
+
 module.exports = function(config){
     function memo(afn,options) {
         if (!options) options = {} ;
@@ -42,16 +44,22 @@ module.exports = function(config){
         var afnID = hash(afn.toString()) ;
         var backingCache = (options.createCache || config.createCache)(afnID) ;
         var localCache = new Map() ;
+        
+        var localID = "local" ;
+        try { localID = "local("+os.hostname()+":"+process.pid+")" } catch (ex) {}
+        
         var cache = {
-            get:function(key) {
+            get:function(key,origin) {
                 // This is like an 'async function' (ie. it returns a Promise), _except_ it
                 // can synchronously return undefined meaning there is no cache entry and 
                 // no hope of getting one asynchronously. This fact is used by the caller
                 // to indicate that the entry should be set synchronously, to implement
                 // a critcal-section lock
                 var l = localCache.get(key) ;
-                if (l!==null && l!==undefined) 
+                if (l!==null && l!==undefined) {
+                    origin && origin.push(localID) ;
                     return l ;
+                }
                 if (backingCache) {
                     var entry = deferred() ;
                     localCache.set(key,entry.result) ;
@@ -61,8 +69,10 @@ module.exports = function(config){
                     } else {
                         entry.resolve(back) ;
                     }
+                    origin && origin.push("backingCache("+(backingCache.name||0)+")") ;
                     return entry.result ;
                 }
+                origin && origin.push("cachemiss") ;
                 // Else return undefined...we don't have (and won't get) an entry for this item
             },
             set:async function(key,data,ttl) {
@@ -113,59 +123,79 @@ module.exports = function(config){
         if (options.link && afn[options.link])
             return afn[options.link] ;
         
-        async function memoed() {
-            var key = getKey(this,arguments,options.key,afn) ;
-            if (key===undefined || key===null) {
-                // Not cachable - maybe 'crypto' isn't defined?
-                return afn.apply(this,arguments) ;
-            }
-            
-            key += afnID ;
-
-            var entry = cache.get(key) ;
-            if (isThenable(entry))
-                entry = await entry ;
-
-            if (entry) {
-                if (!entry.expires || entry.expires > Date.now()) {
-                    if ('data' in entry)
-                        return entry.data ;
-                    if (isThenable(entry.result))
-                        return entry.result ;
+        function memoed() {
+            var origin = config.origin ? []:undefined ;
+            var memoPromise = (async function() {
+                var key = getKey(this,arguments,options.key,afn) ;
+                if (key===undefined || key===null) {
+                    // Not cachable - maybe 'crypto' isn't defined?
+                    origin && origin.push("apicall") ;
+                    return afn.apply(this,arguments) ;
                 }
-                // This entry has expired or contains no pending or concrete data
-                await cache.delete(key) ;
-            } else {
-                var inProgress = localCache.get(key) ;
-                if (inProgress && !inProgress.then)
-                    return inProgress.result ;
-            }
-
-            // Create a promise and cache it. Do this _before_ running the underlying function
-            // to minimize the timing-hole where two processes attempt to populate the same
-            // cache entry. Note this is not possible (and unnecessary) in a single, unclustered
-            // process, but the point of afn/memo is to provide a framework for multi-process or
-            // clustered processes to avoid unnecessary re-entrancy
-            // Note: to eliminate the hole altogether, the get() on line:111 would need to be 
-            // an atomic "get-and-set-promise-if-empty" returning a Promise that can be externally resolved/rejected.
-            entry = deferred() ;
-            await cache.set(key,entry,options.ttl) ; // The early set means other requests get suspended
-            
-            // Now run the underlying async function, then resolve the Promise in the cache
-            afn.apply(this,arguments).then(function(r){
-                if (options.ttl) {
-                    entry.expires = options.ttl + Date.now() ;
+                
+                key += afnID ;
+                origin && origin.push(key) ;
+    
+                var entry = cache.get(key,origin) ;
+                if (isThenable(entry)) {
+                    origin && origin.push("await") ;
+                    entry = await entry ;
                 }
-                entry.data = r ;
-                await cache.set(key,entry,options.ttl) ;
-                entry.resolve(r) ;
-            },function(x){
-                await cache.delete(key) ;
-                entry.reject(x) ;
-            }) ;
-            
-            return entry.result ;
-        };
+                
+                if (entry) {
+                    if (!entry.expires || entry.expires > Date.now()) {
+                        if ('data' in entry) {
+                            origin && origin.push("sync") ;
+                            return entry.data ;
+                        }
+                        if (isThenable(entry.result)) {
+                            origin && origin.push("async") ;
+                            return entry.result ;
+                        }
+                    }
+                    // This entry has expired or contains no pending or concrete data
+                    await cache.delete(key) ;
+                    origin && origin.push("expired") ;
+                } else {
+                    var inProgress = localCache.get(key) ;
+                    if (inProgress && !inProgress.then) {
+                        origin && origin.push("inprogress") ;
+                        return inProgress.result ;
+                    }
+                }
+    
+                // Create a promise and cache it. Do this _before_ running the underlying function
+                // to minimize the timing-hole where two processes attempt to populate the same
+                // cache entry. Note this is not possible (and unnecessary) in a single, unclustered
+                // process, but the point of afn/memo is to provide a framework for multi-process or
+                // clustered processes to avoid unnecessary re-entrancy
+                // Note: to eliminate the hole altogether, the get() on line:111 would need to be 
+                // an atomic "get-and-set-promise-if-empty" returning a Promise that can be externally resolved/rejected.
+                entry = deferred() ;
+                origin && origin.push("apicall") ;
+                await cache.set(key,entry,options.ttl) ; // The early set means other requests get suspended
+                
+                // Now run the underlying async function, then resolve the Promise in the cache
+                afn.apply(this,arguments).then(function(r){
+                    origin && origin.push("resolved") ;
+                    if (options.ttl) {
+                        entry.expires = options.ttl + Date.now() ;
+                    }
+                    entry.data = r ;
+                    await cache.set(key,entry,options.ttl) ;
+                    entry.resolve(r) ;
+                },function(x){
+                    origin && origin.push("rejected") ;
+                    await cache.delete(key) ;
+                    entry.reject(x) ;
+                }) ;
+                
+                return entry.result ;
+            }).apply(this,arguments);
+            if (origin)
+                memoPromise.origin = origin ;
+            return memoPromise ;
+        }
         memoed.clearCache = async function(){
             if (cache.clear) {
                 cache.clear() ;
