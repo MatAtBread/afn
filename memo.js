@@ -233,7 +233,7 @@ module.exports = function(config){
             h.update("null") ;
             return ;
         }
-        if (o instanceof Object){
+        if (typeof o === 'object'){
             if (m.get(o))
                 return ;
             m.set(o,o) ;
