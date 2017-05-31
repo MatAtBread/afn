@@ -38,9 +38,6 @@ module.exports = function(config){
             return Object.create(null,d) ;
         }
         
-        if (options.ttl !==undefined && typeof options.ttl!=="number")
-            throw new Error("ttl must be undefined or a number") ;
-        
         var afnID = hash(afn.toString()) ;
         var backingCache = (options.createCache || config.createCache)(afnID) ;
         var localCache = new Map() ;
@@ -174,17 +171,27 @@ module.exports = function(config){
                     // an atomic "get-and-set-promise-if-empty" returning a Promise that can be externally resolved/rejected.
                     entry = deferred() ;
                     origin && origin.push("apicall") ;
-                    await cache.set(key,entry,options.ttl) ; // The early set means other requests get suspended
+                    var ttl = typeof options.ttl === "number"?options.ttl:1000*options.ttl(this,arguments) ;
+                    await cache.set(key,entry,ttl) ; // The early set means other requests get suspended
 
                     // Now run the underlying async function, then resolve the Promise in the cache
                     afn.apply(this,arguments).then(function(r){
-                        origin && origin.push("resolved") ;
-                        if (options.ttl) {
-                            entry.expires = options.ttl + Date.now() ;
+                        try {
+                            if (typeof options.ttl === "function")
+                                ttl = 1000*options.ttl(this,arguments,r) ;
+                            
+                            origin && origin.push("resolved") ;
+                            if (ttl) {
+                                entry.expires = ttl + Date.now() ;
+                            }
+                            entry.data = r ;
+                            await cache.set(key,entry,ttl) ;
+                            entry.resolve(r) ;
+                        } catch (x) {
+                            origin && origin.push("exception") ;
+                            await cache.delete(key) ;
+                            entry.reject(x) ;
                         }
-                        entry.data = r ;
-                        await cache.set(key,entry,options.ttl) ;
-                        entry.resolve(r) ;
                     },function(x){
                         origin && origin.push("rejected") ;
                         await cache.delete(key) ;
