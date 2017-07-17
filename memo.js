@@ -171,14 +171,15 @@ module.exports = function(config){
                     // an atomic "get-and-set-promise-if-empty" returning a Promise that can be externally resolved/rejected.
                     entry = deferred() ;
                     origin && origin.push("apicall") ;
-                    var ttl = typeof options.ttl === "number"?options.ttl:1000*options.ttl(this,arguments) ;
+                    var theseArgs = arguments ;
+                    var ttl = typeof options.ttl === "number"?options.ttl:1000*options.ttl(this,theseArgs) ;
                     await cache.set(key,entry,ttl) ; // The early set means other requests get suspended
 
                     // Now run the underlying async function, then resolve the Promise in the cache
-                    afn.apply(this,arguments).then(function(r){
+                    afn.apply(this,theseArgs).then(function(r){
                         try {
                             if (typeof options.ttl === "function")
-                                ttl = 1000*options.ttl(this,arguments,r) ;
+                                ttl = 1000*options.ttl(this,theseArgs,r) ;
                             
                             origin && origin.push("resolved") ;
                             if (ttl) {
