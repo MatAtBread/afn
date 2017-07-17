@@ -305,9 +305,19 @@ module.exports = function(config){
     case 'object':
         crypto = config.crypto ;
     }
-    if (!crypto)
-        crypto = (typeof require==="function" && require('crypto')) || { createHash:hashes.basicCreateHash };
 
+    if (!crypto) {
+        function _require(mod) {
+            try {
+                return typeof require==="function" ? require(mod):undefined ;
+            } catch (ex) {
+                return undefined ;
+            }
+        }
+        
+        crypto = _require('crypto') || { createHash:hashes.basicCreateHash };
+    }
+    
     var timer = setInterval(async function cleanCaches() {
         var now = Date.now();
         for (var i=0; i<caches.length; i++) {

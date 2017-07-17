@@ -1,6 +1,14 @@
 module.exports = function(config){
+    function _require(mod) {
+        try {
+            return typeof require==="function" ? require(mod):undefined ;
+        } catch (ex) {
+            return undefined ;
+        }
+    }
+    
     config = config || {} ;
-    var crypto = config.crypto || (typeof require==="function" && require('crypto')) || { createHash:basicCreateHash };
+    var crypto = config.crypto || _require('crypto') || { createHash:basicCreateHash };
 
     function hashCode(h,o,m) {
         if (o===undefined) {
