@@ -112,6 +112,30 @@ module.exports = function(config){
                 } else {
                     return localCache.keys() ;
                 }
+            },
+            expireKeys:async function(now){
+                // Expire local keys
+                var keys = localCache.keys() ;
+                for (var i in keys) {
+                    var k = keys[i] ;
+                    var entry = localCache.get(k) ;
+                    if (entry && entry.expires && entry.expires < now)
+                        localCache.delete(k) ;
+                }
+                // Expire backing keys
+                if (backingCache) {
+                    if (backingCache.expireKeys)
+                        await backingCache.expireKeys(now) ;
+                    else {
+                        keys = await backingCache.keys() ;
+                        for (var i in keys) {
+                            k = keys[i] ;
+                            entry = await backingCache.get(k) ;
+                            if (entry && entry.expires && entry.expires < now)
+                                backingCache.delete(k) ;
+                        }
+                    }
+                }
             }
         };
         caches.push(cache) ;
@@ -322,15 +346,8 @@ module.exports = function(config){
     var timer = setInterval(async function cleanCaches() {
         var now = Date.now();
         for (var i=0; i<caches.length; i++) {
-            var cache = caches[i] ;
-            var keys = await Promise.resolve(cache.keys()) ;
-            for (var i in keys) {
-                var k = keys[i] ;
-                var entry = await Promise.resolve(cache.get(k)) ;
-                if (entry && entry.expires && entry.expires < now)
-                    cache.delete(k) ;
-            }
-        } 
+            caches[i].expireKeys(now) ;
+        }
     } ,60000) ;
     
     if (timer.unref)
