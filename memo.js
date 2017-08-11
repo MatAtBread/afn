@@ -127,10 +127,10 @@ module.exports = function(config){
                     if (backingCache.expireKeys)
                         await backingCache.expireKeys(now) ;
                     else {
-                        keys = await backingCache.keys() ;
+                        keys = await Promise.resolve(backingCache.keys()) ;
                         for (var i in keys) {
                             k = keys[i] ;
-                            entry = await backingCache.get(k) ;
+                            entry = await Promise.resolve(backingCache.get(k)) ;
                             if (entry && entry.expires && entry.expires < now)
                                 backingCache.delete(k) ;
                         }
