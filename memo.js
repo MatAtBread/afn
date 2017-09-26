@@ -208,6 +208,8 @@ module.exports = function(config){
                             origin && origin.push("resolved") ;
                             if (ttl) {
                                 entry.expires = ttl + Date.now() ;
+                                if (origin)
+                                    origin.expires = entry.expires ;
                             }
                             entry.data = r ;
                             await cache.set(key,entry,ttl) ;

@@ -1,6 +1,6 @@
 {
   "name": "afn",
-  "version": "1.1.9",
+  "version": "1.1.10",
   "description": "async/await function utilities",
   "main": "index.js",
   "scripts": {
@@ -24,6 +24,6 @@
   },
   "homepage": "https://github.com/MatAtBread/afn#readme",
   "dependencies": {
-    "nodent": ">=2.6.11"
+    "nodent": ">=3.1.3"
   }
 }
