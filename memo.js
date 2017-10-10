@@ -1,4 +1,4 @@
-'use nodent-promises';
+'use nodent';
 'use strict';
 
 /* 'memoize' an async function so that that multiple calls with 
@@ -37,8 +37,8 @@ module.exports = function(config){
             }) ;
             return Object.create(null,d) ;
         }
-        
-        var afnID = hash(afn.toString()) ;
+
+        var afnID = afn.name+"["+hash(afn.toString())+"]" ;
         var backingCache = (options.createCache || config.createCache)(afnID) ;
         var localCache = new Map() ;
         
@@ -155,7 +155,6 @@ module.exports = function(config){
                         return afn.apply(this,arguments) ;
                     }
 
-                    key += afnID ;
                     origin && origin.push(key) ;
 
                     var entry = cache.get(key,origin) ;
@@ -168,6 +167,16 @@ module.exports = function(config){
                         if (!entry.expires || entry.expires > Date.now()) {
                             if ('data' in entry) {
                                 origin && origin.push("sync") ;
+                                var mru = options.mru && options.mru(this,arguments,entry.data) ; 
+                                if (mru) {
+                                    mru = mru*1000 ;
+                                    var mruExpiry = mru + Date.now() ;
+                                    if (mruExpiry > entry.expires) {
+                                        origin && origin.push("mru:"+new Date(mruExpiry).toISOString()) ;
+                                        entry.expires = mruExpiry ;
+                                        cache.set(key,entry,mruExpiry) ;
+                                    }
+                                }
                                 return entry.data ;
                             }
                             if (isThenable(entry.result)) {
