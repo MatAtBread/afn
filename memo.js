@@ -20,6 +20,8 @@ var os = require('os') ;
 module.exports = function(config){
     function memo(afn,options) {
         if (!options) options = {} ;
+        if (!options.createLocalCache)
+            options.createLocalCache = config.createLocalCache || function(){ return new Map() } ;
 
         function isThenable(f) {
             return f && typeof f.then === "function" ;
@@ -40,7 +42,7 @@ module.exports = function(config){
 
         var afnID = afn.name+"["+hash(afn.toString())+"]" ;
         var backingCache = (options.createCache || config.createCache)(afnID) ;
-        var localCache = new Map() ;
+        var localCache = options.createLocalCache(afnID) ;
         
         var localID = "local" ;
         try { localID = "local("+os.hostname()+":"+process.pid+")" } catch (ex) {}
