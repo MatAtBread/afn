@@ -240,6 +240,9 @@ module.exports = function(config){
                 }).apply(this,arguments);
                 if (origin)
                     memoPromise.origin = origin ;
+                
+                options.testHarness && options.testHarness(this,arguments,afn,memoPromise) ;
+                config.testHarness && config.testHarness(this,arguments,afn,memoPromise) ;
                 return memoPromise ;
             }
             memoed.options = function(overrides){
