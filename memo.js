@@ -174,7 +174,7 @@ module.exports = function(config){
                                     mru = mru*1000 ;
                                     var mruExpiry = mru + Date.now() ;
                                     if (mruExpiry > entry.expires) {
-                                        origin && origin.push("mru:"+new Date(mruExpiry).toISOString()) ;
+                                        origin && origin.push("mru("+new Date(mruExpiry).toISOString()+")") ;
                                         entry.expires = mruExpiry ;
                                         cache.set(key,entry,mruExpiry) ;
                                     }
