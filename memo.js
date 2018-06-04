@@ -141,6 +141,11 @@ module.exports = function(config){
             }
         };
         caches.push(cache) ;
+        
+        // If 'afn' is NOT a function, just return the backed-cache.
+        if (typeof afn !== "function") {
+        		return cache ;
+        }
 
         // If this async function already has a named memo, use that one
         if (options.link && afn[options.link])
