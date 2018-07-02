@@ -272,7 +272,7 @@ module.exports = function(config){
 
         function getKey(self,args,keySpec,fn) {
             if (typeof keySpec==='function') {
-                var spec = keySpec(self,args,fn) ;
+                var spec = keySpec(self,args,fn,hash) ;
                 if (spec===undefined)
                     return spec ;
                 
