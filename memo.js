@@ -272,7 +272,7 @@ module.exports = function(config){
 
         function getKey(self,args,keySpec,fn) {
             if (typeof keySpec==='function') {
-                var spec = keySpec(self,args,fn,hash) ;
+                var spec = keySpec(self,args,fn,memo) ;
                 if (spec===undefined)
                     return spec ;
                 
@@ -374,5 +374,6 @@ module.exports = function(config){
     if (timer.unref)
         timer.unref()
         
+    memo.hash = hash ; // Other exports that are useful
     return memo ;
 } ;
