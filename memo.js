@@ -57,7 +57,7 @@ module.exports = function(config){
             if (typeof value === 'number')
                 return value * 1000 ; // Convert to ms
             if (typeof value === 'string') {
-              var m = timeRegexp.match(value);
+              var m = value.match(timeRegexp);
               if (!m || !timebase[m[2]]) 
                 throw new Error("Unknown TTL format: "+value) ;
               return parseFloat(m[1])*timebase[m[2]];
@@ -110,6 +110,7 @@ module.exports = function(config){
                 origin && origin.push(localID) ;
                 return l.value ;
               }
+              localCache.delete(key);
             }
             if (backingCache) {
               var entry = deferred() ;
