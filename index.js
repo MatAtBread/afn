@@ -2,11 +2,13 @@
 require('nodent')();
 /* Each function is in a separate file for easy pulling apart if you only want a subset */
 
-module.exports = function(config){
+function afn(config){
     if (!config) config = {} ;
     var result = Object.create(null) ;
-    ['map','memo','queue'].forEach(function(f){
+    Object.keys(config).forEach(function(f){
         result[f] = require('./'+f)(config[f])
     }) ;
     return result ;
 } ;
+
+module.exports = afn ;
