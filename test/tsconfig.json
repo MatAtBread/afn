@@ -1,0 +1,28 @@
+{
+    "include": ["./src/**/*.ts", "./src/**/*.tsx"],
+    "exclude": ["node_modules", "dist", "./src/**/*.spec.ts", "./src/**/__tests__/**/*.ts", "./types"],
+    "files": ["./matt.ts"],
+    "compilerOptions": {
+      "allowSyntheticDefaultImports": true,
+      "esModuleInterop": true,
+      "forceConsistentCasingInFileNames": true,
+      "lib": ["es2017","dom"],
+      "module": "commonjs",
+      "moduleResolution": "node",
+      "noEmitHelpers": false,
+      "noEmitOnError": true,
+      "noErrorTruncation": true,
+      "noFallthroughCasesInSwitch": true,
+      "noImplicitAny": true,
+      "noImplicitReturns": true,
+      "noUnusedLocals": true,
+      "noUnusedParameters": true,
+      "outDir": "./dist",
+      "pretty": true,
+      "sourceMap": true,
+      "strict": true,
+      "target": "es2017",
+      "typeRoots" : ["./types", "./node_modules/@types"]
+    }
+  }
+  

@@ -4,9 +4,10 @@
   "description": "async/await function utilities",
   "main": "",
   "scripts": {
-      "test": "nodentjs ./test.js",
-      "test-memo": "../node_modules/nodent/nodent.js testmemo.js",
-      "test-queue": "../node_modules/nodent/nodent.js testqueue.js"
+    "test": "npm run test-js && npm run test-queue && npm run test-ts",
+    "test-js": "../node_modules/nodent/nodent.js test.js",
+    "test-queue": "../node_modules/nodent/nodent.js testqueue.js",
+    "test-ts": "node -r ts-node/register ./test.ts"
   },
   "repository": {
     "type": "git",
@@ -24,5 +25,16 @@
     "url": "https://github.com/MatAtBread/afn/issues"
   },
   "homepage": "https://github.com/MatAtBread/afn#readme",
-  "dependencies": {}
+  "dependencies": {
+    "afn": "file:..",
+    "ts-node": "^8.1.0",
+    "typescript": "^3.4.5"
+  },
+  "nodent":{
+    "directive":{
+      "default":{
+          "engine":true
+      }
+    }
+  }
 }
