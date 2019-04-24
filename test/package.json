@@ -33,7 +33,8 @@
   "nodent":{
     "directive":{
       "default":{
-          "engine":true
+          "engine":"host",
+          "promise":"host"
       }
     }
   }
