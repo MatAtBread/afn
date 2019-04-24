@@ -1,10 +1,10 @@
 {
   "name": "afn",
-  "version": "1.2.7",
+  "version": "1.3.0",
   "description": "async/await function utilities",
   "main": "index.js",
   "scripts": {
-    "test": "cd test ; npm test ; cd ..",
+    "test": "cd test ; npm i ; npm test ; cd ..",
     "install": "nodentjs --dest=dist/ --use=promise --noruntime memo.js map.js queue.js hash.js"
   },
   "repository": {
@@ -25,5 +25,6 @@
   "homepage": "https://github.com/MatAtBread/afn#readme",
   "dependencies": {
     "nodent": "^3.2.6"
-  }
+  },
+  "types": "index.d.ts"
 }
