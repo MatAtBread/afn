@@ -6,7 +6,7 @@ const { memo, map, hash } = afn({
     hash:{ unOrderedArrays: true, hashEncoding: 'base64' }
 }) ;
 
-function sleep(t:number):Promise<void>{
+function sleep(t:number){
     return new Promise(resolve => setTimeout(resolve,t*1000)) ;
 }
 

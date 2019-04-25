@@ -48,11 +48,15 @@ declare module 'afn' {
     interface MemoizerOrAsyncMapper {
         <R, A extends any[]>(afn: MemoAsyncFunction<R, A>, opts?: MemoConfig<R, A>) : MemoAsyncFunction<R, A>;
         <K, V>(id: { name: string, key?: K, value?: V }, opts?: CacheConfig) : AsyncMap<K, V>;
+        hash: (source: any) => string;
     }
 
     /* map.js */
 
-    type AsyncMapper = <R, S>(arg: S) => Promise<R>;
+    interface AsyncMapper<R,S> {
+        (arg: S) : Promise<R>;
+    }
+
     interface MapFunction {
         // Async counter
         <R>(i: number, mapper: AsyncMapper<R,number>): Promise<Array<R>>;
@@ -64,6 +68,7 @@ declare module 'afn' {
         <T extends object>(a: T): Promise<T>;
         // Generalized list (like Promise.all)
         <T>(args:Array<T>): Promise<Array<T>>;
+        MapError:Error;
     }
 
     interface MapFactoryConfig {
@@ -95,6 +100,6 @@ declare module 'afn' {
         queue():AsyncQueueConstructor;
     };
 
-    const afn:AfnLoader ;
-    export default afn ;
+    const defaultExport:AfnLoader ;
+    export default defaultExport;
 }
