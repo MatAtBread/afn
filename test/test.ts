@@ -1,4 +1,4 @@
-import afn from 'afn';
+import { afn } from 'afn';
 
 const { memo, map, hash } = afn({
     memo:{ TTL: 60 },

@@ -22,13 +22,15 @@ declare module 'afn' {
         origin?: boolean;
     }
 
-    type MemoAsyncFunction<Return, Args extends any[]> = (...args: Args) => Promise<Return>;
-
+    interface MemoAsyncFunction<Return, Args extends any[]> {
+        (...args: Args) : Promise<Return>;
+    } 
+    
     interface MemoConfig<R, A extends any[]> extends BaseConfig {
         link?: string;
         key?: (self: any, args: any[], fn: MemoAsyncFunction<R, A>, memo: any) => any;
-        MRU?: number | string | ((afn: MemoAsyncFunction<R, A>, args: any[], result: R | null | undefined) => number | string);
-        TTL?: number | string | ((afn: MemoAsyncFunction<R, A>, args: any[], result: R | null | undefined) => number | string);
+        MRU?: number | string | ((afn: MemoAsyncFunction<R, A>, args: A, result: R | null | undefined) => number | string);
+        TTL?: number | string | ((afn: MemoAsyncFunction<R, A>, args: A, result: R | null | undefined) => number | string);
     }
 
     /* memo.js (async maps) */
@@ -88,18 +90,20 @@ declare module 'afn' {
     }
 
     /* afn.js */
-    type AfnLoader = (config: {
-        memo?: MemoFactoryConfig;
-        map?: MapFactoryConfig;
-        hash?: HashConfig;
-        queue?: any;
-    }) => {
-        memo: MemoizerOrAsyncMapper;
-        map: MapFunction;
-        hash: (source: any) => string;
-        queue():AsyncQueueConstructor;
-    };
+    interface AfnLoader { 
+        (config: {
+            memo?: MemoFactoryConfig;
+            map?: MapFactoryConfig;
+            hash?: HashConfig;
+            queue?: any;
+        }) : {
+            memo: MemoizerOrAsyncMapper;
+            map: MapFunction;
+            hash: (source: any) => string;
+            queue():AsyncQueueConstructor;
+        };
+        afn:AfnLoader;
+    }
 
-    const defaultExport:AfnLoader ;
-    export default defaultExport;
+    const afn:AfnLoader ;
 }

@@ -11,4 +11,5 @@ function afn(config){
     return result ;
 } ;
 
-module.exports = afn ;
+// Make afn refer to itself to avoid a default export in TS
+module.exports = afn.afn = afn ;
