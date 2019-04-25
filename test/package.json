@@ -30,11 +30,11 @@
     "ts-node": "^8.1.0",
     "typescript": "^3.4.5"
   },
-  "nodent":{
-    "directive":{
-      "default":{
-          "engine":"host",
-          "promise":"host"
+  "nodent": {
+    "directive": {
+      "default": {
+        "engine": "host",
+        "promise": "host"
       }
     }
   }

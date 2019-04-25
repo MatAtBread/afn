@@ -22,9 +22,6 @@
 
 var os = require('os') ;
 
-const timebase = {s:1000,ms:1,m:60000,h:3600000,d:86400000} ;
-const timeRegexp = /([0-9.]+)(s|ms|m|h|d)/ ;
-
 module.exports = function(config){
   function memo(afn,options) {
 
@@ -39,6 +36,9 @@ module.exports = function(config){
     // The return value is always in 'ms' even though they aew all specified in seconds, EXCEPT
     // the lower0case 'ttl' member if it is a constant number.
     
+    const timebase = {s:1000,ms:1,m:60000,h:3600000,d:86400000} ;
+    const timeRegexp = /([0-9.]+)(s|ms|m|h|d)/ ;
+
     function time(name,args) {
       var k = [name.toUpperCase(), name.toLowerCase()] ;
       var spec = [options,config] ;
@@ -54,6 +54,8 @@ module.exports = function(config){
             if (typeof value === 'function') 
               value = value.apply(spec[i],args);
 
+            if (typeof value === "undefined")
+              return ;
             if (typeof value === 'number')
                 return value * 1000 ; // Convert to ms
             if (typeof value === 'string') {
@@ -128,6 +130,10 @@ module.exports = function(config){
             // Else return undefined...we don't have (and won't get) an entry for this item
           },
           set:async function(key,data,ttl) {
+            if (ttl===0)
+               return cache.delete(key);
+             if (ttl===undefined)
+               ttl = time('ttl',[]);
             // If TTL is absent, the item remains in the cache "forever" (depends on cache semantics)
             // In this context (a cache set operation, ttl is ALWAYS in milliseconds)
             localCache.set(key,{value: data, expires: typeof ttl === "number" ? Date.now() + ttl : undefined }) ;
@@ -249,7 +255,8 @@ module.exports = function(config){
               origin && origin.push("expired") ;
             } else {
               var inProgress = localCache.get(key) ;
-              if (inProgress) inProgress = inProgress.value ;
+              if (inProgress) 
+                inProgress = inProgress.value ;
               if (inProgress && !inProgress.then) {
                 origin && origin.push("inprogress") ;
                 return inProgress.result ;
