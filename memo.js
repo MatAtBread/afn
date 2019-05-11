@@ -79,16 +79,19 @@ module.exports = function(config){
       }
 
       function deferred() {
-        var d = {
-            result:{ value:null },
-            resolve:{ value:null },
-            reject:{ value:null }
-        } ;
-        d.result.value = new Promise(function(r,x){
-          d.resolve.value = r ;
-          d.reject.value = x ;
+        var resolve, reject ;
+        var d = new Promise(function(r,x){
+          resolve = r ;
+          reject = x ;
         }) ;
-        return Object.create(null,d) ;
+        d.then(function(v){ 
+          Object.defineProperties(d,{value: { value: v }});
+        }) ;
+        Object.defineProperties(d,{
+          resolve: { value: resolve },
+          reject: { value: reject }
+        })
+        return d ;
       }
 
       var afnID = afn.name+"["+hash(afn.toString())+"]" ;
@@ -116,7 +119,7 @@ module.exports = function(config){
             }
             if (backingCache) {
               var entry = deferred() ;
-              localCache.set(key,{ value: entry.result }) ;
+              localCache.set(key,{ value: entry /* expire me when the max lock-promise-time is met */ }) ;
               var back = backingCache.get(key);
               if (isThenable(back)) {
                 back.then(entry.resolve,entry.reject);
@@ -124,7 +127,7 @@ module.exports = function(config){
                 entry.resolve(back) ;
               }
               origin && origin.push("backingCache("+(backingCache.name||0)+")") ;
-              return entry.result ;
+              return entry ;
             }
             origin && origin.push("cachemiss") ;
             // Else return undefined...we don't have (and won't get) an entry for this item
@@ -177,25 +180,25 @@ module.exports = function(config){
           expireKeys:async function(now){
             // Expire local keys
             var keys = localCache.keys() ;
+            var expired = [];
             for (var i in keys) {
               var k = keys[i] ;
               var entry = localCache.get(k) ;
-              if (entry && entry.expires && entry.expires < now)
+              if (entry && entry.expires && entry.expires < now) {
+                expired.push(k);
                 localCache.delete(k) ;
+              }
             }
             // Expire backing keys
-            if (backingCache) {
-              if (backingCache.expireKeys)
-                await backingCache.expireKeys(now) ;
-              else {
-                keys = await Promise.resolve(backingCache.keys()) ;
-                for (var i in keys) {
-                  k = keys[i] ;
-                  entry = await Promise.resolve(backingCache.get(k)) ;
-                  if (entry && entry.expires && entry.expires < now)
-                    backingCache.delete(k) ;
-                }
-              }
+            if (backingCache && backingCache.expireKeys) {
+              await backingCache.expireKeys(now) ;
+            }
+            else {
+                // This backing cache doesn't support automatic expiry, which gives un
+                // a problem in this implementation, as we have no idea what should be 
+                // removed, so we just expire the keys we know about, and hope other instances
+                // that created keys will do the same
+                await Promise.all(expired.map(function(k){ return backingCache.delete(k) }))
             }
           }
       };
@@ -214,7 +217,7 @@ module.exports = function(config){
         function memoed() {
           var origin = config.origin ? []:undefined ;
           var memoPromise = (async function() {
-            var key = getKey(this,arguments,options.key,afn) ;
+            var key = getKey(this,arguments,options.key || config.key,afn) ;
             if (key===undefined || key===null) {
               // Not cachable - maybe 'crypto' isn't defined?
               origin && origin.push("apicall") ;
@@ -230,37 +233,19 @@ module.exports = function(config){
             }
 
             if (entry) {
-              if (!entry.expires || entry.expires > Date.now()) {
-                if ('data' in entry) {
-                  origin && origin.push("sync") ;
-                  var mru = time('mru',[this,arguments,entry.data]) ; 
-                  if (mru) {
-                    mru = mru*1000 ;
-                    var mruExpiry = mru + Date.now() ;
-                    if (mruExpiry > entry.expires) {
-                      origin && origin.push("mru("+new Date(mruExpiry).toISOString()+")") ;
-                      entry.expires = mruExpiry ;
-                      cache.set(key,entry,mru) ;
-                    }
-                  }
-                  return entry.data ;
-                }
-                if (isThenable(entry.result)) {
-                  origin && origin.push("async") ;
-                  return entry.result ;
-                }
+              if (isThenable(entry)) {
+                origin && origin.push("async") ;
+                return entry.result ;
+              } else {
+                origin && origin.push("sync") ;
+                var mru = time('mru',[this,arguments,entry.data]) ; 
+                if (mru)
+                  cache.set(key,entry,mru * 1000) ;
+                return entry ;
               }
               // This entry has expired or contains no pending or concrete data
               await cache.delete(key) ;
               origin && origin.push("expired") ;
-            } else {
-              var inProgress = localCache.get(key) ;
-              if (inProgress) 
-                inProgress = inProgress.value ;
-              if (inProgress && !inProgress.then) {
-                origin && origin.push("inprogress") ;
-                return inProgress.result ;
-              }
             }
 
             // Create a promise and cache it. Do this _before_ running the underlying function
@@ -287,8 +272,7 @@ module.exports = function(config){
                   if (origin)
                     origin.expires = entry.expires ;
                 }
-                entry.data = r ;
-                await cache.set(key,entry,ttl) ;
+                await cache.set(key, r, ttl);
                 entry.resolve(r) ;
               } catch (x) {
                 origin && origin.push("exception") ;
@@ -301,7 +285,7 @@ module.exports = function(config){
               entry.reject(x) ;
             }) ;
 
-            return entry.result ;
+            return entry ;
           }).apply(this,arguments);
           if (origin)
             memoPromise.origin = origin ;
