@@ -1,0 +1,51 @@
+[
+ [
+  [
+    "string/A",
+    "backingCache(0)",
+    "wait",
+    "backingcachemiss",
+    "apicall",
+    "resolved"
+  ],
+  [ "string/A", "local(MOL-HSK-DEV0063:43653)", "wait", "returned" ],
+  [ "string/A", "local(MOL-HSK-DEV0063:43653)", "returned" ],
+  [
+    "string/A",
+    "backingCache(0)",
+    "wait",
+    "restored",
+    "returned"
+  ],
+  [
+    "string/A",
+    "expired",
+    "backingCache(0)",
+    "wait",
+    "backingcacheexpired",
+    "apicall",
+    "resolved"
+  ]
+],
+[
+  [ "string/A", "local(MOL-HSK-DEV0063:43653)", "returned" ],
+  [ "string/A", "local(MOL-HSK-DEV0063:43653)", "returned" ],
+  [ "string/A", "local(MOL-HSK-DEV0063:43653)", "returned" ],
+  [
+    "string/A",
+    "backingCache(0)",
+    "wait",
+    "restored",
+    "returned"
+  ],
+  [
+    "string/A",
+    "expired",
+    "backingCache(0)",
+    "wait",
+    "backingcacheexpired",
+    "apicall",
+    "resolved"
+  ]
+ ]
+]

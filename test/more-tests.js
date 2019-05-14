@@ -31,7 +31,6 @@ function mfn(...args) {
 
   await sleep(3);
 
-  debugger;
   a = mfn();
   b = mfn();
   console.log(a, await a);

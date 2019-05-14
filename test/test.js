@@ -1,4 +1,4 @@
-'use nodent';
+'use nodent-engine';
 'use strict';
 
 const delay = 500 ;
@@ -29,23 +29,26 @@ async function memoize(name,memo) {
     const immediateTest = memo(async function immediateTest(x) {
         return "immediately-"+x ;
     },{
-        ttl:60000, 
+        TTL:60, 
         key:function(self, args, asyncFunction) { return args[0] }  
     }) ;
     
     async function test(x) {
         log("run") ;
         if (x[0] === '!')
-        throw ("NoCache-"+x) ;
+            throw ("NoCache-"+x) ;
         await sleep(delay) ;
         return x ;
     }
     
-    const localTest = memo(test,{
-        ttl:60000, 
+    const _localTest = memo(test,{
+        origin:true,
+        TTL:60, 
         key:function(self, args, asyncFunction) { return args[0] }  
     }) ;
     
+
+    const localTest = _localTest  ;//(...args) => { let p = _localTest(...args) ; return p.then(_ => console.log(p.origin)) }
     immediateTest("first").then(log,log) ;
     
     localTest("first").then(log,log) ;
@@ -66,93 +69,19 @@ async function memoize(name,memo) {
 }
 
 var memo = require('../memo') ;
+var caches = require('./test_caches');
 
-// Test the "local" (default) in-object cache
-await memoize('local',memo()) ;
-// Test afn-redis-cache
-try {
-    const redisCache = require('afn-redis-cache')({
-        //        log(){console.log('afn-redis-cache',Array.prototype.slice.call(arguments).toString())},
-        redis:"redis://127.0.0.1/13",
-        defaultTTL:120,
-        asyncTimeOut:30
-    }) ;
-    await memoize('redis',memo(redisCache)) ;
-} catch (ex) {
-    console.warn("To test 'afn-redis-cache': cd test ; npm i afn-redis-cache ; cd .. ; npm test") ;
+(async ()=>{
+
+var cacheNames = Object.keys(caches) ;
+for (var i=0; i<cacheNames.length; i++){
+    var name = cacheNames[i] ;
+    var options = caches[name] ;
+    await memoize(name,memo(options)) ;
+
 }
-// Test a simple JS Map()
-await memoize('map',memo({
-    createCache:function(id){
-        return new Map() ;
-    }
-})) ;
-
-// Test a basic JS object
-await memoize('object',memo({
-    createCache:function(id){
-        var o = Object.create(null) ;
-        return {
-            get(key) { return o[key] },
-            set(key,value) { o[key] = value },
-            keys() { return Object.keys(o) },
-            clear() { o = Object.create(null) },
-            'delete'(key) { delete o[key] }
-        }
-    }
-})) ;
-
-//Test a basic JS object with an async api
-await memoize('async',memo({
-    createCache:function(id){
-        var o = Object.create(null) ;
-        return {
-            async get(key) { return o[key] },
-            async set(key,value) { o[key] = value },
-            async keys() { return Object.keys(o) },
-            async clear() { o = Object.create(null) },
-            async 'delete'(key) { delete o[key] }
-        }
-    }
-})) ;
-
-//Test a file-based cache
-await memoize('file',memo({
-    crypto:"basicCreateHash",
-    createCache:function(id){
-        const fs = require('fs') ;
-        const root = "./afn-data/" ;
-        const dir = root+id+"/" ;
-
-        var fileCache = {
-            get(key) { 
-                try { 
-                    return JSON.parse(fs.readFileSync(dir+encodeURIComponent(key))) 
-                } catch (ex) {
-                    if (ex.code==="ENOENT") return ; 
-                    else throw ex ; 
-                } 
-            },
-            set(key,value) { fs.writeFileSync(dir+encodeURIComponent(key),JSON.stringify(value)) },
-            keys() { try { return fs.readdirSync(dir).map(n => decodeURIComponent(n)) } catch (ex) { return [] }},
-            clear() { fileCache.keys().forEach(fn => fileCache.delete(fn)) },
-            'delete'(key) {
-                try {
-                    fs.unlinkSync(dir+encodeURIComponent(key)) ;
-                } catch (ex) {
-                    if (ex.code==="ENOENT") return ;
-                    throw ex ;
-                }
-            }
-        }
-        
-        console.log("Deleting old file cache",id);
-        fileCache.keys().forEach(fn => fileCache.delete(fn)) ;
-        try { fs.mkdirSync(root) ; } catch(ex) {}
-        try { fs.mkdirSync(dir) ; } catch(ex) {}
-        return fileCache ;
-    }
-})) ;
 
 console.log("TESTS COMPLETE. Passes:",passes," Fails:",fails) ;
 process.exit(fails ? -1:0) ;
+
+})();

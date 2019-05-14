@@ -3,7 +3,7 @@ declare module 'afn' {
 
     interface HashConfig {
         unOrderedArrays?: boolean,
-        crypto?: ({createHash(any:any):any}),
+        crypto?: string | ({createHash(algorithm:string):any /*{ update:()=>, digest(encoding:string)=>}*/}),
         hashEncoding?: string,
     }
 
@@ -16,6 +16,7 @@ declare module 'afn' {
 
     interface CacheConfig extends BaseConfig {
         TTL: number | string;
+        log?: (...args:any[]) => void;
     }
 
     interface MemoFactoryConfig extends HashConfig, CacheConfig {

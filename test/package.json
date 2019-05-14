@@ -27,6 +27,8 @@
   "homepage": "https://github.com/MatAtBread/afn#readme",
   "dependencies": {
     "afn": "file:..",
+    "afn-redis-cache": "file:../../afn-redis-cache",
+    "rimraf": "^2.6.3",
     "ts-node": "^8.1.0",
     "typescript": "^3.4.5"
   },
