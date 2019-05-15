@@ -38,21 +38,24 @@ module.exports = function (config) {
     return d;
   }
 
+  function ensureAsyncApi(cache){
+    if (!cache) return cache ;
+    var result = Object.create(cache);
+    ['get', 'set', 'delete', 'clear', 'keys'].forEach(function (k) {
+      if (typeof cache[k] === "function") {
+        result[k] = function () {
+          var r = cache[k].apply(cache, arguments);
+          return isThenable(r) ? r : Promise.resolve(r)
+        }
+      }
+    });
+    return result;
+}
+
   var noReturn = Promise.resolve();
   function createBackedCache(afnID, options) {
     // Ensure the backing cache has an async interface
-    var backingCache, protoBackingCache = (options.createCache || config.createCache)(afnID)
-    if (protoBackingCache) {
-      backingCache = Object.create(protoBackingCache);
-      ['get', 'set', 'delete', 'clear', 'keys'].forEach(function (k) {
-        if (typeof protoBackingCache[k] === "function") {
-          backingCache[k] = function () {
-            var r = protoBackingCache[k].apply(protoBackingCache, arguments);
-            return isThenable(r) ? r : Promise.resolve(r)
-          }
-        }
-      });
-    }
+    var backingCache = ensureAsyncApi((options.createCache || config.createCache)(afnID)) ;
     var localCache = options.createLocalCache(afnID); // localCache is always stnchronous, like a Map
     var localID = "local";
     try {
@@ -270,7 +273,7 @@ module.exports = function (config) {
 
     // If 'afn' is NOT a function, just return the backed-cache.
     if (typeof afn !== "function") {
-      return cache;
+      return ensureAsyncApi(cache);
     }
 
     // If this async function already has a named memo, use that one
