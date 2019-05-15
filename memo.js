@@ -20,7 +20,7 @@
  *  
  */
 
-module.exports = function (config) {
+module.exports = function (globalOptions) {
   function isThenable(f) {
     return f && typeof f.then === "function";
   }
@@ -55,7 +55,7 @@ module.exports = function (config) {
   var noReturn = Promise.resolve();
   function createBackedCache(afnID, options) {
     // Ensure the backing cache has an async interface
-    var backingCache = ensureAsyncApi((options.createCache || config.createCache)(afnID)) ;
+    var backingCache = ensureAsyncApi(options.createCache(afnID)) ;
     var localCache = options.createLocalCache(afnID); // localCache is always stnchronous, like a Map
     var localID = "local";
     try {
@@ -124,7 +124,7 @@ module.exports = function (config) {
       set: function (key, data, ttl) {
         // In this context (a cache set operation) the "ttl" parameter is ALWAYS in milliseconds
         if (data === undefined) {
-          config.log && config.log("Cannot store 'undefined' in afn async cache. Using 'null' instead");
+          options.log && options.log("Cannot store 'undefined' in afn async cache. Using 'null' instead");
           data = null;
         }
 
@@ -215,15 +215,15 @@ module.exports = function (config) {
     return cache;
   }
 
-  function memo(afn, options) {
+  function memo(afn, memoOptions) {
 
     // In order to maintain compatability with <=v1.2.7
     // the 'ttl' member is treated as in being in ms if a constant, and 
     // seconds otherwise (as per previous spec)
     // This routine prefers the 'TTL' member which is always in seconds, or a time-string
     // It can also retrieve the 'mru' member which was always in seconds, for which MRU is an alias
-    // It checks the current options and the instance options, meaning the order is:
-    // options.TTL, config.TTL, options.ttl, config.ttl
+    // It checks the current memoOptions and the instance memoOptions, meaning the order is:
+    // memoOptions.TTL, globalOptions.TTL, memoOptions.ttl, globalOptions.ttl
     // These can be constants (number, string) or functions returning the same
     // The return value is always in 'ms' even though they aew all specified in seconds, EXCEPT
     // the lower0case 'ttl' member if it is a constant number.
@@ -233,7 +233,7 @@ module.exports = function (config) {
 
     function time(name, args) {
       var k = [name.toUpperCase(), name.toLowerCase()];
-      var spec = [options, config];
+      var spec = [options];
 
       var i, j;
       for (i = 0; i < spec.length; i++) {
@@ -262,12 +262,11 @@ module.exports = function (config) {
       }
     }
 
-    if (!options) options = {};
+    var options = Object.assign({}, globalOptions, memoOptions);
     if (!options.createLocalCache)
-      options.createLocalCache = config.createLocalCache || function () { return new Map() };
+      options.createLocalCache = function () { return new Map() };
 
-    var finalOptions = Object.assign({}, options, config);
-    var cache = createBackedCache(afn.name + "[" + hash(afn.toString()) + "]", finalOptions);
+    var cache = createBackedCache(afn.name + "[" + hash(afn.toString()) + "]", options);
 
     caches.push(cache);
 
@@ -280,13 +279,13 @@ module.exports = function (config) {
     if (options.link && afn[options.link])
       return afn[options.link];
 
-    function createMemo(options) {
+    function createMemo() {
       function memoed(/* arguments */) {
         var theseArgs = arguments;
         var self = this;
-        var origin = config.origin ? [] : undefined;
+        var origin = globalOptions.origin ? [] : undefined;
         var memoPromise = (function () {
-          var key = getKey(this, arguments, options.key || config.key, afn);
+          var key = getKey(this, arguments, options.key, afn);
           if (key === undefined || key === null) {
             // Not cachable - maybe 'crypto' isn't defined?
             origin && origin.push("apicall");
@@ -343,8 +342,8 @@ module.exports = function (config) {
         if (origin)
           memoPromise.origin = origin;
 
-        options.testHarness && options.testHarness(this, arguments, afn, memoPromise);
-        config.testHarness && config.testHarness(this, arguments, afn, memoPromise);
+        memoOptions.testHarness && memoOptions.testHarness(this, arguments, afn, memoPromise);
+        globalOptions.testHarness && globalOptions.testHarness(this, arguments, afn, memoPromise);
         return memoPromise;
       }
       memoed.options = function (overrides) {
@@ -368,7 +367,7 @@ module.exports = function (config) {
       return memoed;
     }
 
-    return createMemo(options);
+    return createMemo();
 
     function getKey(self, args, keySpec, fn) {
       if (typeof keySpec === 'function') {
@@ -397,7 +396,7 @@ module.exports = function (config) {
       if (m.get(o))
         return;
       m.set(o, o);
-      if (config.unOrderedArrays && Array.isArray(o)) {
+      if (globalOptions.unOrderedArrays && Array.isArray(o)) {
         h.update("array/" + o.length + "/" + o.map(hash).sort());
       } else {
         Object.keys(o).sort().map(function (k) {
@@ -414,7 +413,7 @@ module.exports = function (config) {
       return undefined;
     var h = crypto.createHash('sha256');
     hashCode(h, o, new Map());
-    return h.digest(config.hashEncoding || 'latin1');
+    return h.digest(globalOptions.hashEncoding || 'latin1');
   }
 
   function subHash(o) {
@@ -440,16 +439,16 @@ module.exports = function (config) {
     }
   };
 
-  config = config || {};
-  config.createCache = config.createCache || function (cacheID) { };
+  globalOptions = globalOptions || {};
+  globalOptions.createCache = globalOptions.createCache || function (cacheID) { };
   var caches = [];
   var crypto;
-  switch (typeof config.crypto) {
+  switch (typeof globalOptions.crypto) {
     case 'string':
-      crypto = { createHash: hashes[config.crypto] };
+      crypto = { createHash: hashes[globalOptions.crypto] };
       break;
     case 'object':
-      crypto = config.crypto;
+      crypto = globalOptions.crypto;
   }
 
   if (!crypto) {
@@ -466,8 +465,8 @@ module.exports = function (config) {
       try {
         await caches[i].expireKeys(now);
       } catch (ex) {
-        if (config.log)
-          config.log("cleanCaches", ex);
+        if (globalOptions.log)
+          globalOptions.log("cleanCaches", ex);
       }
     }
   }, 60000);
