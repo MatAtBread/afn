@@ -137,7 +137,7 @@ module.exports = function (globalOptions) {
         localCache.set(key, { value: data, expires: expires });
         if (backingCache) {
           if (isThenable(data)) {
-            backingCache.set(key,
+            return backingCache.set(key,
               data.then(function (result) {
                 if (result === undefined) {
                   return backingCache.delete(key);
@@ -149,7 +149,7 @@ module.exports = function (globalOptions) {
               }),
               ttl);
           } else {
-            backingCache.set(key, { value: data, expires: expires }, ttl);
+            return backingCache.set(key, { value: data, expires: expires }, ttl);
           }
         }
         return noReturn;
