@@ -67,39 +67,43 @@ module.exports = function (globalOptions) {
         if (backingCache)
           localCache.clear();
       },
-      _assureLocalCacheIsPending: function (key) {
+      _assureLocalCachePending: function (key) {
         var l = localCache.get(key);
         if (!l || !l.value || !isThenable(l.value)) {
           l = { value: deferred() };
           localCache.set(key, l);
         }
-        return l;
+        return l.value;
       },
       get: function (key, origin) {
         // Get a cache entry. This can return a concrete value OR a Promise for the entry
         // The result 'undefined' (concrete or Promise) means there is no entry for this key.
         // (async caches can't store 'undefined' - they treat it as 'null' instead)
         var now = Date.now();
+
+        origin && origin.push(key, localID);
+
         var l = localCache.get(key);
         if (l !== undefined) {
           if (l.expires === undefined || l.expires > now) {
-            origin && origin.push(localID);
+            origin && origin.push(isThenable(l.value) ? "async":"sync");
             return l.value;
           }
           origin && origin.push("expired");
           localCache.delete(key);
         }
         if (backingCache) {
+          origin && origin.push("backingCache(" + (backingCache.name || 0) + ")");
           var entry = deferred(), response = deferred();
           localCache.set(key, { value: entry });
           /* expire me when the max lock-promise-time is met */
           backingCache.get(key).then(function (result) {
             if (result === undefined) {
-              origin && origin.push("backingcachemiss");
+              origin && origin.push("backingmiss");
               response.resolve(undefined);
             } else {
               if (result.expires && result.expires < Date.now()) {
-                origin && origin.push("backingcacheexpired");
+                origin && origin.push("backingexpired");
                 response.resolve(undefined);
               } else {
                 origin && origin.push("restored");
@@ -115,7 +119,6 @@ module.exports = function (globalOptions) {
             response.resolve(undefined);
             entry.resolve(undefined);
           })
-          origin && origin.push("backingCache(" + (backingCache.name || 0) + ")");
           return response;
         }
         origin && origin.push("localcachemiss");
@@ -130,6 +133,7 @@ module.exports = function (globalOptions) {
 
         if (ttl <= 0)
           return cache.delete(key);
+
         //         if (ttl===undefined)
         //           ttl = time('ttl',[]);
         // If TTL is absent, the item remains in the cache "forever" (depends on cache semantics)
@@ -290,8 +294,6 @@ module.exports = function (globalOptions) {
             return isThenable(result) ? result : Promise.resolve(result);
           }
 
-          origin && origin.push(key);
-
           var entry = cache.get(key, origin);
           if (isThenable(entry)) {
             origin && origin.push("wait");
@@ -300,20 +302,18 @@ module.exports = function (globalOptions) {
           if (entry !== undefined) {
             var mru = time('mru', [this, arguments, entry]);
             if (mru)
-              cache.set(key, entry, mru * 1000);
+              cache.set(key, entry, mru);
             origin && origin.push("returned");
             return Promise.resolve(entry);
           }
 
-          entry = cache._assureLocalCacheIsPending(key).value;
+          // `entry` is undefined (possibly via a promise). Retrieve the promise
+          // that any callers are waiting for from the local cache, or create one if necessary
+          entry = cache._assureLocalCachePending(key);
 
           function cacheOperation(p) {
             p && p.then && p.then(r => null, x => origin && origin.push("cacheexecption"));
           }
-
-          origin && origin.push("apicall");
-          var ttl = time('ttl', [self, theseArgs]);
-          //            cacheOperation(cache.set(key,entry,ttl)) // The early set means other requests get suspended
 
           entry.then(function (result) {
             ttl = time('ttl', [self, theseArgs, result]);
@@ -326,6 +326,7 @@ module.exports = function (globalOptions) {
           })
 
           // Now run the underlying async function, then resolve the Promise in the cache
+          origin && origin.push("apicall");
           afn.apply(self, theseArgs).then(function (r) {
             origin && origin.push("resolved");
             entry.resolve(r);
