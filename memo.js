@@ -262,10 +262,7 @@ module.exports = function (globalOptions) {
       }
     }
 
-    var options = Object.assign({}, globalOptions, memoOptions);
-    if (!options.createLocalCache)
-      options.createLocalCache = function () { return new Map() };
-
+    var options = Object.assign({ createLocalCache() { return new Map() } }, globalOptions, memoOptions);
     var cache = createBackedCache(afn.name + "[" + hash(afn.toString()) + "]", options);
 
     caches.push(cache);
