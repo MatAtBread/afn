@@ -1,4 +1,4 @@
-const {memo} = require('afn')({ memo: { TTL: 2, origin: true, hashEncoding: 'base64' }});
+const {memo} = require('afn')({ memo: { TTL: 1, origin: true, hashEncoding: 'base64' }});
 
 function sleep(t) {
   return new Promise(resolve => setTimeout(resolve, t*1000));
@@ -29,7 +29,7 @@ function mfn(...args) {
   c = mfn();
   console.log(c, await c);
 
-  await sleep(3);
+  await sleep(2);
 
   a = mfn();
   b = mfn();

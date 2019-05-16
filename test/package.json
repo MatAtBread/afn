@@ -4,7 +4,9 @@
   "description": "async/await function utilities",
   "main": "",
   "scripts": {
-    "test": "npm run test-js && npm run test-queue && npm run test-ts",
+    "test": "npm run test-cache && npm run test-afn && npm run test-js && npm run test-queue && npm run test-ts",
+    "test-cache": "../node_modules/nodent/nodent.js cache-test.js",
+    "test-afn": "../node_modules/nodent/nodent.js afn-test.js",
     "test-js": "../node_modules/nodent/nodent.js test.js",
     "test-queue": "../node_modules/nodent/nodent.js testqueue.js",
     "test-ts": "node -r ts-node/register ./test.ts"
