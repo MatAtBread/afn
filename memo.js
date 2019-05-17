@@ -274,10 +274,10 @@ module.exports = function (globalOptions) {
       },
       expireKeys: async function (now) {
         // Expire local keys
+        if (now === undefined) now = Date.now();
         var keys = localCache.keys();
         var expired = [];
-        for (var i in keys) {
-          var k = keys[i];
+        for (var k of keys) {
           var entry = localCache.get(k);
           if (entry && entry.expires && entry.expires < now) {
             expired.push(k);
