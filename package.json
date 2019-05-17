@@ -1,6 +1,6 @@
 {
   "name": "afn",
-  "version": "2.0.0-prerelease",
+  "version": "2.0.1-prerelease",
   "description": "async/await function utilities",
   "main": "index.js",
   "scripts": {
