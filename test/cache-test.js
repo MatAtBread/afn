@@ -9,33 +9,31 @@ async function delay(x) {
   return x ;
 }
 
-(async () => {
+async function runTests(implemenattion){
   var cacheNames = Object.keys(caches);
   for (var i = 0; i < cacheNames.length; i++) {
     var name = cacheNames[i];
     var opts = caches[name];
 
-    var memo = require('../memo')(Object.assign({}, opts, { TTL: '1m' }));
+    var memo = implemenattion(Object.assign({}, opts, { TTL: '1s', asyncTimeOut: 2 }));
     console.log("Testing: ", name)
-
-    var cache = memo({name:name}) ;
 
     async function testExpected(s,expected,r) {
       const cacheName = name;
       const l = [] ;
-      const f = function(m) {
-        l.push(m);
-      }
-      debugger;
-      await r(f,s) ;
+      const log = l.push.bind(l);
+
+      await r(log,s) ;
       expected = expected.map(e => typeof e === "boolean" ? (e ? s : undefined) : e)
       const pass = l.length === expected.length && l.every((_,i) => l[i] === expected[i] ? s : undefined) ;
       if (pass) {
-        //console.log("pass",cacheName,s)
+        console.log("pass",cacheName,s)
       } else {
         console.log("FAIL",cacheName,s,l,expected)
       }
     }
+
+    var cache = memo({name:name}) ;
 
     async function combinations(notEmpty) {
       // await with concrete values 
@@ -151,6 +149,21 @@ async function delay(x) {
 
     }
 
+    async function timeouts() {
+      await testExpected('t1',
+      [ undefined, 0, undefined, 10 ],
+      async (log,x) => {
+        let t = Date.now();
+        let a = cache.get(x) ;
+        let b = cache.get(x) ;
+        log(await a,(Date.now() - t)/200 |0);
+        log(await b,(Date.now() - t)/200 |0);
+      })
+    }
+
+    await cache.clear() ;
+    await timeouts() ;
+
     await cache.clear() ;
     await conditional() ;
     await sleep(200);
@@ -167,5 +180,12 @@ async function delay(x) {
     await combinations(true) ;
   }
   console.log("done");
+}
+
+(async () => {
+  console.log("../memo")
+  await runTests(require('../memo'))
+  console.log("../dist/memo")
+  await runTests(require('../dist/memo'))
   process.exit(0);
 })();

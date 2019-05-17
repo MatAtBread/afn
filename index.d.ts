@@ -29,9 +29,9 @@ declare module 'afn' {
     
     interface MemoConfig<R, A extends any[]> extends BaseConfig {
         link?: string;
-        key?: (self: any, args: any[], fn: MemoAsyncFunction<R, A>, memo: MemoizerOrAsyncMapper) => any;
-        MRU?: number | string | ((afn: MemoAsyncFunction<R, A>, args: A, result: R | null | undefined) => number | string);
-        TTL?: number | string | ((afn: MemoAsyncFunction<R, A>, args: A, result: R | null | undefined) => number | string);
+        key?: (self: any, args: A, fn: MemoAsyncFunction<R, A>, memo: MemoizerOrAsyncMapper) => any;
+        MRU?: number | string | ((self: any | undefined, args: A | undefined, result: R | undefined) => number | string);
+        TTL?: number | string | ((self: any | undefined, args: A | undefined, result: R | undefined) => number | string);
     }
 
     /* memo.js (async maps) */

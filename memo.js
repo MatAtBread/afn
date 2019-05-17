@@ -34,6 +34,8 @@ module.exports = function (globalOptions) {
       props.resolve.value = resolve;
       props.reject.value = reject;
     });
+    // We attach a single, silent handler to suppress the unecessary warning about unhandled rejections
+    d.then(()=>{},()=>{});
     Object.defineProperties(d, props)
     return d;
   }
@@ -53,7 +55,7 @@ module.exports = function (globalOptions) {
   }
 
   // In order to maintain compatability with <=v1.2.7
-  // the 'ttl' member is treated as in being in ms if a constant, and 
+  // the 'ttl' member is treated as being in ms if a constant, and 
   // seconds otherwise (as per previous spec)
   // This routine prefers the 'TTL' member which is always in seconds, or a time-string
   // It can also retrieve the 'mru' member which was always in seconds, for which MRU is an alias
@@ -77,9 +79,15 @@ module.exports = function (globalOptions) {
           if (k[j] === 'ttl' && typeof value === 'number')
             return value; // The special case of .ttl: <number>, which is in milliseconds
 
-          if (typeof value === 'function')
-            value = value.apply(spec[i], args);
-
+          if (typeof value === 'function') {
+            try {
+              value = value.apply(spec[i], args);
+            } catch (ex) {
+              console.warn(__dirname+"/"+__filename+": mru()",ex);
+              value = undefined;
+              continue;
+            }
+          }
           if (typeof value === "undefined")
             return;
           if (typeof value === 'number')
@@ -107,23 +115,27 @@ module.exports = function (globalOptions) {
       localID = "local(" + require('os').hostname() + ":" + process.pid + ")"
     } catch (ex) { }
 
-    function updateCaches(key,l,localCache,backingCache,data,expires,ttl){
-      (function setValue(v){
+    function updateCaches(key,backingCache,data,ttl){
+      var l = localCache.get(key);
+      // If TTL is absent, the item remains in the cache "forever" (depends on cache semantics)
+      var expires = typeof ttl === "number" ? Date.now() + ttl : undefined;
+
+      return (function setValue(v,rejection){
         if (v === undefined) {
           localCache.delete(key);
-          backingCache && backingCache.delete(key);
-          l && isThenable(l.value) && l.value.reject() ;
+          l && isThenable(l.value) && l.value.reject(rejection) ;
+          return backingCache && backingCache.delete(key);
         } else if (isThenable(v)) {
           localCache.set(key,{ value: v, expires: expires })
-          v.then(setValue, 
+          return v.then(setValue, 
           function(x){
-            setValue(undefined);
+            setValue(undefined,x);
           })
         } else {
           var c = { value: v, expires: expires };
           localCache.set(key,c);
-          backingCache && backingCache.set(key,c,ttl) ;
           l && isThenable(l.value) && l.value.resolve(v) ;
+          return backingCache && backingCache.set(key,c,ttl) ;
         }
       })(data);
     }
@@ -156,6 +168,25 @@ module.exports = function (globalOptions) {
           localEntry = { value: deferred() };
           localCache.set(key, localEntry);
           l = noReturn;
+
+          {
+            // This is placeholder Promise. A set() operation will cause this to resolve
+            // but we ensure resolution by timing out the get(), in case we don't call set()
+            var timerId = setTimeout(function () {
+              timerId = undefined;
+              origin && origin.push("getTimeOut")
+              localEntry.value.resolve();
+              localCache.delete(key);
+            }, options.asyncTimeOut * 1000);
+            function killTimer() { 
+              if (timerId) {
+                clearTimeout(timerId) 
+                timerId = undefined;
+              }
+            }
+            localEntry.value.then(killTimer, killTimer);
+          }
+
         } else {
           // Otherwise, return the cached entry - either a real value, or the Promise of one
           origin && origin.push(isThenable(localEntry.value)?"async":"sync");
@@ -173,29 +204,23 @@ module.exports = function (globalOptions) {
                 return noReturn;
               } else {
                 origin && origin.push("restore");
-                updateCaches(key,localCache.get(key),localCache,null,r.value,r.expires);        
+
+                var mru = time([options], 'mru', [undefined, undefined, r.value]);
+                if (mru !== undefined) {
+                  updateCaches(key,backingCache,r.value, mru);        
+                } else {
+                  updateCaches(key,null,r.value,r.expires - now);        
+                }
                 return r.value;
               }
             }, function (x) {
               origin && origin.push("exception");
+              updateCaches(key,null,undefined,undefined);        
               return noReturn;
             })
           } else {
             // Just return the local copy
             return l;
-          }
-        } else {
-          if (l === noReturn) {
-            // This is placeholder Promise. A set() operation will cause this to resolve
-            // but we ensure resolution by timing out the get(), in case we don't call set()
-            var timeout = localCache.get(key).value;
-            var timerId = setTimeout(function () {
-              origin && origin.push("getTimeOut")
-              timeout.resolve();
-              localCache.delete(key);
-            }, options.asyncTimeOut * 1000);
-            function killTimer() { clearTimeout(timerId) }
-            timeout.then(killTimer, killTimer);
           }
         }
 
@@ -209,21 +234,16 @@ module.exports = function (globalOptions) {
           data = null;
         }
 
-        if (ttl <= 0)
-          return cache.delete(key);
-
         if (ttl === undefined)
           ttl = time([options], 'ttl', []);
-        // If TTL is absent, the item remains in the cache "forever" (depends on cache semantics)
-        var expires = typeof ttl === "number" ? Date.now() + ttl : undefined;
-        var l = localCache.get(key);
-        updateCaches(key,l,localCache,backingCache,data,expires,ttl);
+        if (ttl <= 0)
+          data = undefined;
+
+        updateCaches(key,backingCache,data,ttl);
         return noReturn;
       },
       'delete': function (key) {
-        localCache.delete(key);
-        if (backingCache)
-          return backingCache.delete(key);
+        updateCaches(key,backingCache,undefined,undefined);
       },
       clear: async function () {
         localCache.clear();
@@ -334,6 +354,8 @@ module.exports = function (globalOptions) {
                 }
                 return entry ;
               }
+            },function(x){
+              debugger;
             })
           }
         }
@@ -352,11 +374,11 @@ module.exports = function (globalOptions) {
       };
       memoed.clearCache = async function () {
         if (cache.clear) {
-          cache.clear();
+          return cache.clear();
         } else {
-          (await Promise.resolve(cache.keys())).forEach(function (k) { cache.delete(k) });
+          var keys = await cache.keys();
+          return Promise.all(keys.map(function(k){ return cache.delete(k) }));
         }
-        return memoed;
       };
       if (options.link) {
         Object.defineProperty(memoed, options.link, afn);

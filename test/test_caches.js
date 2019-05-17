@@ -87,7 +87,10 @@ module.exports = {
                     } 
                 },
                 set(key,value) { fs.writeFileSync(name(key),JSON.stringify(value)) },
-                keys() { try { return fs.readdirSync(dir).map(n => decodeURIComponent(n)) } catch (ex) { return [] }},
+                keys() { 
+                    try { 
+                        return fs.readdirSync(dir).map(n => decodeURIComponent(n).replace(/\.json$/,"")) 
+                    } catch (ex) { return [] }},
                 clear() { fileCache.keys().forEach(fn => fileCache.delete(fn)) },
                 'delete'(key) {
                     try {
@@ -129,7 +132,10 @@ module.exports = {
                     } 
                 },
                 async set(key,value) { await fs.writeFile(name(key),JSON.stringify(value)) },
-                async keys() { try { return (await fs.readdir(dir)).map(n => decodeURIComponent(n)) } catch (ex) { return [] }},
+                async keys() {
+                    try {
+                        return (await fs.readdir(dir)).map(n => decodeURIComponent(n).replace(/\.json$/,"")) 
+                    } catch (ex) { return [] }},
                 async clear() { return Promise.all((await fileCache.keys()).map(fn => fileCache.delete(fn))) },
                 async 'delete'(key) {
                     try {
