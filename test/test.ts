@@ -17,12 +17,20 @@ function sleep(t:number){
     }
 
     const minc = memo(inc) ;
-    var x = await inc(10) ;
-    var y = await minc(11) ;
+
+    let x = await inc(10) ;
+    let y = await minc(11) ;
     await sleep(2) ;
     x = await inc(10) ;
     y = await minc(11) ;
+    console.log(x,y) ;
 
+    minc.clearCache();
+    x = await inc(10) ;
+    y = await minc(11) ;
+    await sleep(2) ;
+    x = await inc(10) ;
+    y = await minc(11) ;
     console.log(x,y) ;
 
     const m = memo({name:'test', key:0, value:''}) ;

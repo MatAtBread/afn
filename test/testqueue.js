@@ -4,7 +4,7 @@ global.Promise = global.Promise || require('nodent').Thenable ;
 function sleep(t){
     return new Promise(resolve => setTimeout(resolve,t)) ;
 }
-debugger ;
+
 var afn = require('..')({queue:null}) ;
 var AsyncQueue = afn.queue ;
 

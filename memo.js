@@ -355,7 +355,7 @@ module.exports = function (globalOptions) {
                 return entry ;
               }
             },function(x){
-              debugger;
+              options.log('Rejection writing back to cache',x);
             })
           }
         }

@@ -47,9 +47,12 @@ declare module 'afn' {
     }
 
     /* memo.js - entry */
+    interface MemoizedAsyncFunction<R, A extends any[]> extends MemoAsyncFunction<R,A> {
+        clearCache(): Promise<any>;
+    }
 
     interface MemoizerOrAsyncMapper {
-        <R, A extends any[]>(afn: MemoAsyncFunction<R, A>, opts?: MemoConfig<R, A>) : MemoAsyncFunction<R, A>;
+        <R, A extends any[]>(afn: MemoAsyncFunction<R, A>, opts?: MemoConfig<R, A>) : MemoizedAsyncFunction<R, A>;
         <K, V>(id: { name: string, key?: K, value?: V }, opts?: CacheConfig) : AsyncMap<K, V>;
         hash: (source: any) => string;
     }

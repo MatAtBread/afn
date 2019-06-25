@@ -90,7 +90,7 @@ async function runTests(implementation) {
     });
 
     counter = 10 ;
-    debugger;
+
     await increment.clearCache();
     await testExpected('x1',[11,name,11],async (log,x) => {
       try {
