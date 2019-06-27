@@ -38,6 +38,7 @@ declare module 'afn' {
 
     interface AsyncMap<K, V> {
         get(key: K): Promise<V | undefined>;
+        has(key: K): Promise<boolean>;
         set(key: K, value: V): Promise<void>;
         set(key: K, value: V, ttl: number): Promise<void>;
         clear(): Promise<void>;

@@ -43,7 +43,7 @@ module.exports = function (globalOptions) {
   function ensureAsyncApi(cache) {
     if (!cache) return cache;
     var result = Object.create(cache);
-    ['get', 'set', 'delete', 'clear', 'keys'].forEach(function (k) {
+    ['get', 'set', 'delete', 'clear', 'keys', 'has'].forEach(function (k) {
       if (typeof cache[k] === "function") {
         result[k] = function () {
           var r = cache[k].apply(cache, arguments);
@@ -241,6 +241,13 @@ module.exports = function (globalOptions) {
 
         updateCaches(key,backingCache,data,ttl);
         return noReturn;
+      },
+      has: async function(key) {
+        if (localCache.has(key))
+          return true ;
+        if (backingCache)
+          return backingCache.has(key);
+        return false;
       },
       'delete': function (key) {
         updateCaches(key,backingCache,undefined,undefined);
