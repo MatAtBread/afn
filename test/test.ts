@@ -1,10 +1,25 @@
 import { afn } from 'afn';
 
-const { memo, map, hash } = afn({
+const { memo, map, hash, queue } = afn({
+    queue: null,
     memo:{ TTL: 60 },
     map:{ throwOnError: true },
     hash:{ unOrderedArrays: true, hashEncoding: 'base64' }
 }) ;
+
+(async function(){
+    const z = new queue() ;
+
+    z.add(Promise.resolve(1));
+    z.add(2);
+    setTimeout(()=>z.add(3),1000);
+
+    const zz = z[Symbol.iterator]() ;
+
+    console.log("Q",await zz.next().value);
+    console.log("Q",await zz.next().value);
+    console.log("Q",await zz.next().value);
+})().then(console.log.bind(console), console.log.bind(console));
 
 function sleep(t:number){
     return new Promise(resolve => setTimeout(resolve,t*1000)) ;

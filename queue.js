@@ -16,6 +16,8 @@
   q.add(object) ;
  */
 function AsyncQueue() {
+    if (!(this instanceof AsyncQueue))
+        return new AsyncQueue() ;
     this._items = [];
 }
 
@@ -49,6 +51,10 @@ if (typeof Symbol !== "undefined") {
 }
 
 AsyncQueue.prototype.add = function (item) {
+    if (item && typeof item.then === "function") {
+        item.then(this.add.bind(this));
+        return;
+    }
     if (!this._items.length && this._ready) {
         var p = this._resolve ;
         delete this._ready ;
