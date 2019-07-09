@@ -19,6 +19,24 @@ function AsyncQueue() {
     if (!(this instanceof AsyncQueue))
         return new AsyncQueue() ;
     this._items = [];
+    this._pending = [];
+}
+
+function deferred() {
+    var resolve, reject, p = new Promise(function(_resolve, _reject){
+        resolve = _resolve;
+        reject = _reject;
+    });
+    return Object.defineProperties(p,{
+        resolve:{
+            value:resolve,
+            enumerable:false
+        },
+        reject:{
+            value:reject,
+            enumerable:false
+        }
+    })
 }
 
 function iterator() {
@@ -29,12 +47,8 @@ function iterator() {
             if (self._items.length)
                 value = Promise.resolve(self._items.shift()) ;
             else {
-                if (!self._ready) {
-                    self._ready = new Promise(function(r){
-                        self._resolve = r ;
-                    }) ;
-                }
-                value = self._ready ;
+                value = deferred() ;
+                self._pending.push(value);
             }
             return {
                 done: false,
@@ -55,15 +69,13 @@ AsyncQueue.prototype.add = function (item) {
         item.then(this.add.bind(this));
         return;
     }
-    if (!this._items.length && this._ready) {
-        var p = this._resolve ;
-        delete this._ready ;
-        delete this._resolve ;
-        p(item) ;
+    if (this._pending.length) {
+        this._pending.shift().resolve(item);
     } else {
         this._items.push(item);
     }
 };
+
 AsyncQueue.prototype.length = function () {
     return this._items.length;
 };
