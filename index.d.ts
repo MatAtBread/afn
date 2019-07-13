@@ -31,6 +31,7 @@
     key?: (self: any, args: A, fn: MemoAsyncFunction<R, A>, memo: MemoizerOrAsyncMapper) => any;
     MRU?: number | string | ((self: any | undefined, args: A | undefined, result: R | undefined) => number | string);
     TTL?: number | string | ((self: any | undefined, args: A | undefined, result: R | undefined) => number | string);
+    asyncTimeOut?: number;
   }
 
   /* memo.js (async maps) */
