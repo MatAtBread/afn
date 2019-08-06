@@ -198,7 +198,7 @@ module.exports = function (globalOptions) {
           if (l === noReturn) {
             // We don't have a local copy, but we have reserved a promise - try the backing cache to resolve it
             origin && origin.push("backingCache("+backingCache.name+")");
-            return backingCache.get(key).then(function (r) {
+            return backingCache.get(key,options).then(function (r) {
               if (r === undefined || r.expires < now) {
                 origin && origin.push(r?"expired":"miss");
                 return noReturn;
