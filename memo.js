@@ -361,8 +361,8 @@ module.exports = function (globalOptions) {
                 }
                 return entry ;
               }
-            },function(x){
-              options.log('Rejection writing back to cache',x);
+            }).then(function(r){ return r },function(x){
+              options.log && options.log('Rejection writing back to cache',x);
             })
           }
         }
