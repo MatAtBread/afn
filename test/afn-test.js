@@ -55,9 +55,6 @@ async function runTests(implementation) {
       await sleep(100);
       let c = increment() ;
       log(await c) ;
-//      console.log(name,x,a.origin.slice(1));
-//      console.log(name,x,b.origin.slice(1));
-//      console.log(name,x,c.origin.slice(1));
     }
 
     counter = 0 ;
@@ -92,7 +89,7 @@ async function runTests(implementation) {
     counter = 10 ;
 
     await increment.clearCache();
-    await testExpected('x1',[11,name,11],async (log,x) => {
+    await testExpected('x1',[11,"X"+name,11],async (log,x) => {
       try {
         log(await increment());
         log(await increment(name)); 
