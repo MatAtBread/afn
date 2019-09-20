@@ -16,7 +16,7 @@ async function runTests(implementation) {
     var opts = caches[name];
 
     var memo = implementation(Object.assign({}, opts, { TTL: '1s', asyncTimeOut: 2 }));
-    console.log("Testing: ", name)
+    console.log("\nTesting: ", name)
 
     async function testExpected(s,expected,r) {
       const cacheName = name;
@@ -27,7 +27,7 @@ async function runTests(implementation) {
       expected = expected.map(e => typeof e === "boolean" ? (e ? s : undefined) : e)
       const pass = l.length === expected.length && l.every((_,i) => l[i] === expected[i] ? s : undefined) ;
       if (pass) {
-        console.log("pass",cacheName,s)
+        console.log("pass "+cacheName+" "+s+"                         \u001b[1A")
       } else {
         console.log("FAIL",cacheName,s,l,expected)
       }
@@ -38,7 +38,7 @@ async function runTests(implementation) {
     async function _increment(oops) {
       counter += 1;
       if (oops) {
-        throw new Error(oops);
+        throw new Error("X"+oops);
       }
       return counter ;
     }

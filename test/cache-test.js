@@ -16,7 +16,7 @@ async function runTests(implemenattion){
     var opts = caches[name];
 
     var memo = implemenattion(Object.assign({}, opts, { TTL: '1s', asyncTimeOut: 2 }));
-    console.log("Testing: ", name)
+    console.log("\nTesting: ", name)
 
     async function testExpected(s,expected,r) {
       const cacheName = name;
@@ -27,7 +27,7 @@ async function runTests(implemenattion){
       expected = expected.map(e => typeof e === "boolean" ? (e ? s : undefined) : e)
       const pass = l.length === expected.length && l.every((_,i) => l[i] === expected[i] ? s : undefined) ;
       if (pass) {
-        console.log("pass",cacheName,s)
+        console.log("pass "+cacheName+" "+s+"                         \u001b[1A")
       } else {
         console.log("FAIL",cacheName,s,l,expected)
       }
