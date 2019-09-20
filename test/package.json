@@ -4,12 +4,14 @@
   "description": "async/await function utilities",
   "main": "",
   "scripts": {
-    "test": "npm run test-basic && npm run test-cache && npm run test-afn && npm run test-queue && npm run test-ts",
+    "test": "npm run test-basic && npm run test-cache && npm run test-afn && npm run test-queue && npm run test-js-map && npm run test-ts-map",
     "test-basic": "../node_modules/nodent/nodent.js basic-test.js",
     "test-cache": "../node_modules/nodent/nodent.js cache-test.js",
     "test-afn": "../node_modules/nodent/nodent.js afn-test.js",
     "test-queue": "../node_modules/nodent/nodent.js testqueue.js",
-    "test-ts": "node -r ts-node/register ./test.ts"
+    "test-ts-map": "ts-node ./ts-map.ts",
+    "test-js-map": "node ./ts-map.js",
+    "test-cluster": "node cluster.js"
   },
   "repository": {
     "type": "git",
@@ -29,10 +31,10 @@
   "homepage": "https://github.com/MatAtBread/afn#readme",
   "dependencies": {
     "afn": "file:..",
-    "afn-redis-cache": "file:../../afn-redis-cache",
+    "afn-redis-cache": "^2.1.0",
     "rimraf": "^2.6.3",
     "ts-node": "^8.1.0",
-    "typescript": "^3.4.5"
+    "typescript": "^3.6.3"
   },
   "nodent": {
     "directive": {
