@@ -34,10 +34,10 @@ module.exports = {
     redis: (function(){
         try {
             const redisCache = require('afn-redis-cache')({
-                // log(){console.log('afn-redis-cache',Array.prototype.slice.call(arguments).toString())},
+                //log(msg,key,timeOffset,data) {console.log('afn-redis-cache',msg,key,timeOffset,data)},
                 redis:"redis://127.0.0.1/13",
-                defaultTTL:120,
-                asyncTimeOut:30
+                defaultTTL:10,
+                asyncTimeOut:5
             }) ;
             return {...redisCache, origin: true};
         } catch (ex) {

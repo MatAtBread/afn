@@ -35,7 +35,7 @@ module.exports = function (globalOptions) {
       props.reject.value = reject;
     });
     // We attach a single, silent handler to suppress the unecessary warning about unhandled rejections
-    d.then(()=>{},()=>{});
+    d.then(function(){},function(){});
     Object.defineProperties(d, props)
     return d;
   }
@@ -43,7 +43,7 @@ module.exports = function (globalOptions) {
   function ensureAsyncApi(cache) {
     if (!cache) return cache;
     var result = Object.create(cache);
-    ['get', 'set', 'delete', 'clear', 'keys', 'has'].forEach(function (k) {
+    ['get', 'set', 'delete', 'clear', 'keys', 'has', 'expireKeys'].forEach(function (k) {
       if (typeof cache[k] === "function") {
         result[k] = function () {
           var r = cache[k].apply(cache, arguments);
@@ -148,7 +148,7 @@ module.exports = function (globalOptions) {
       get: function (key, origin) {
         // Get a cache entry. This can return a concrete value OR a Promise for the entry
         var l, now = Date.now();
-    
+
         origin && origin.push(key, localID);
         var localEntry = localCache.get(key);
         // Treat expired local entries as if they had never existed
@@ -169,6 +169,7 @@ module.exports = function (globalOptions) {
           localCache.set(key, localEntry);
           l = noReturn;
 
+		
           {
             // This is placeholder Promise. A set() operation will cause this to resolve
             // but we ensure resolution by timing out the get(), in case we don't call set()
@@ -186,7 +187,6 @@ module.exports = function (globalOptions) {
             }
             localEntry.value.then(killTimer, killTimer);
           }
-
         } else {
           // Otherwise, return the cached entry - either a real value, or the Promise of one
           origin && origin.push(isThenable(localEntry.value)?"async":"sync");
@@ -199,7 +199,7 @@ module.exports = function (globalOptions) {
             // We don't have a local copy, but we have reserved a promise - try the backing cache to resolve it
             origin && origin.push("backingCache("+backingCache.name+")");
             return backingCache.get(key,options).then(function (r) {
-              if (r === undefined || r.expires < now) {
+              if (r === undefined || (!backingCache.expireKeys && r.expires < now)) {
                 origin && origin.push(r?"expired":"miss");
                 return noReturn;
               } else {
