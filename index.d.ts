@@ -59,25 +59,25 @@
   }
 
   /* map.js */
+  type UnPromise<X, RejectionType> = X extends Promise<never> ? RejectionType | never : X extends Promise<infer Y> ? Y : X ;
 
-  interface AsyncMapper<R,S> {
-    (arg: S) : Promise<R>;
-  }
-
+  interface MapErrorType extends Error {}
   interface MapFunction {
     // Async counter
-    <R>(i: number, mapper: AsyncMapper<R,number>): Promise<Array<R>>;
-    // Async object field mapper
-    <R, S extends object>(a: S, mapper: AsyncMapper<string, R>): Promise<R>;
-    // Async array mapper
-    <R, S>(a: Array<S>, mapper: AsyncMapper<R,S>): Promise<Array<R>>;
+    <R>(i: number, mapper: (n:number)=>Promise<R>): Promise<Array<R | MapErrorType>>;
+  
+    // Async array mapper (default mapper is simply resolution)
+    <R, S>(a: Array<S>, mapper?: (s:S)=>Promise<R>): Promise<Array<R | MapErrorType>>;
+  
     // Async object field resolver
-    <T extends object>(a: T): Promise<T>;
-    // Generalized list (like Promise.all)
-    <T>(args:Array<T>): Promise<Array<T>>;
-    MapError:Error;
+    <S extends {}>(a: S): Promise<{[k in keyof S]:UnPromise<S[k], MapErrorType>}>;
+  
+    // Async object field resolver
+    <S extends {}, R>(a: S, mapper:(key:string, index:number, keys:string[]) => R): Promise<{[k in keyof S]:R | MapErrorType}>;
+  
+    MapError:MapErrorType;
   }
-
+  
   interface MapFactoryConfig {
     throwOnError?: boolean;
     Promise?: any; // TODO: A function/class that constructs a Promise (eg: the global identifier "Promise")
