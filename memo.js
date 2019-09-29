@@ -314,6 +314,13 @@ module.exports = function (globalOptions) {
       createLocalCache() { return new Map() }
     }, globalOptions, memoOptions);
 
+    // Fix up the timing entries `ttl` and `mru`. Originally lower cases and type sensitive,
+    // they are now uppercased and either strings with units, or numbers of seconds, or functions
+    // returning those values. The issue here is deciding which is precedence - the specific
+    // function options of the general `afn` globalOptions.
+    if (memoOptions.ttl && !memoOptions.TTL && globalOptions.TTL)
+      delete options.TTL;
+
     // If this async function already has a named memo, use that one
     if (options.link && afn[options.link])
       return afn[options.link];
