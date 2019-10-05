@@ -356,7 +356,13 @@ module.exports = function (globalOptions) {
                 origin && origin.push("apicall");
                 var apicall = afn.apply(self, theseArgs);
                 var ttl = time([options], 'ttl', [self, theseArgs]);
-                cache.set(key,apicall,ttl,origin)
+                cache.set(key,apicall,ttl,origin);
+                apicall.then(function(result){
+                  var thenTtl = time([options], 'ttl', [self, theseArgs, result]);
+                  if (thenTtl !== ttl) {
+                    cache.set(key,result,thenTtl,origin);
+                  }
+                });
                 return apicall;
               } else {
                 var mru = time([options], 'mru', [self, theseArgs, entry]);
