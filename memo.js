@@ -318,7 +318,7 @@ module.exports = function (globalOptions) {
     // they are now uppercased and either strings with units, or numbers of seconds, or functions
     // returning those values. The issue here is deciding which is precedence - the specific
     // function options of the general `afn` globalOptions.
-    if (memoOptions.ttl && !memoOptions.TTL && globalOptions.TTL)
+    if (memoOptions && memoOptions.ttl && !memoOptions.TTL && globalOptions.TTL)
       delete options.TTL;
 
     // If this async function already has a named memo, use that one
@@ -362,6 +362,9 @@ module.exports = function (globalOptions) {
                   if (thenTtl !== ttl) {
                     cache.set(key,result,thenTtl,origin);
                   }
+                }, function (ex) {
+                    options && options.log && options.log('Rejection writing back to cache',ex);
+                    cache.delete(key);
                 });
                 return apicall;
               } else {
@@ -374,9 +377,6 @@ module.exports = function (globalOptions) {
                 }
                 return entry ;
               }
-            }).then(function(r){ return r },function(x){
-              options && options.log && options.log('Rejection writing back to cache',x);
-              throw x;
             })
           }
         }
