@@ -104,12 +104,22 @@ module.exports = function (globalOptions) {
     }
   }
 
-
   var noReturn = Promise.resolve();
   function createBackedCache(afnID, options) {
     // Ensure the backing cache has an async interface
-    var backingCache = ensureAsyncApi(options.createCache(afnID));
     var localCache = options.createLocalCache(afnID); // localCache is always stnchronous, like a Map
+    function clearLocalCache() {
+      var keys = localCache.keys();
+      for (var i in keys) {
+        var key = keys[i];
+        var value = localCache.get(key);
+        if (isThenable(value) && value.reject){
+          value.reject(new Error("Cleared"));
+        }
+      };
+      localCache.clear();
+    }
+    var backingCache = ensureAsyncApi(options.createCache(afnID, { clear: clearLocalCache }));
     var localID = "local";
     try {
       localID = "local(" + require('os').hostname() + ":" + process.pid + ")"
@@ -126,6 +136,13 @@ module.exports = function (globalOptions) {
           l && isThenable(l.value) && l.value.reject(rejection) ;
           return backingCache && backingCache.delete(key);
         } else if (isThenable(v)) {
+          if (typeof v.resolve !== "function" || typeof v.reject !== "function") {
+            // This is a "foreign" promise, and we need to chain to it to be
+            // able to force resolution/rejection
+            const foreign = v;
+            v = deferred();
+            foreign.then(v.resolve, v.reject);
+          }
           localCache.set(key,{ value: v, expires: expires })
           return v.then(setValue, 
           function(x){
@@ -143,7 +160,7 @@ module.exports = function (globalOptions) {
     var cache = {
       _flushLocal() {
         if (backingCache)
-          localCache.clear();
+          clearLocalCache();
       },
       get: function (key, origin) {
         // Get a cache entry. This can return a concrete value OR a Promise for the entry
@@ -253,7 +270,7 @@ module.exports = function (globalOptions) {
         updateCaches(key,backingCache,undefined,undefined);
       },
       clear: async function () {
-        localCache.clear();
+        clearLocalCache();
         if (backingCache) {
           if (backingCache.clear)
             return backingCache.clear();
@@ -284,7 +301,8 @@ module.exports = function (globalOptions) {
         if (now === undefined) now = Date.now();
         var keys = localCache.keys();
         var expired = [];
-        for (var k of keys) {
+        for (var i in keys) {
+          var k = keys[i];
           var entry = localCache.get(k);
           if (entry && entry.expires && entry.expires < now) {
             expired.push(k);
@@ -334,7 +352,7 @@ module.exports = function (globalOptions) {
     }
 
     function createMemo() {
-      function memoed(/* arguments */) {
+      var inferNamed = {[afn.name]:function (/* arguments */) {
         var theseArgs = arguments;
         var self = this;
         var origin = globalOptions.origin ? [] : undefined;
@@ -386,7 +404,10 @@ module.exports = function (globalOptions) {
         memoOptions && memoOptions.testHarness && memoOptions.testHarness(this, arguments, afn, memoPromise);
         globalOptions && globalOptions.testHarness && globalOptions.testHarness(this, arguments, afn, memoPromise);
         return memoPromise;
-      }
+      }} ;
+      var memoed = inferNamed[afn.name];
+      var src = afn.toString();
+      memoed.toString = function() { return src };
       memoed.options = function (overrides) {
         return createMemo(Object.assign({}, options, overrides));
       };
