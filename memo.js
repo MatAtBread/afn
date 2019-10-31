@@ -111,12 +111,8 @@ module.exports = function (globalOptions) {
     function clearLocalCache() {
       var keys = localCache.keys();
       for (var i in keys) {
-        var key = keys[i];
-        var value = localCache.get(key);
-        if (isThenable(value) && value.reject){
-          value.reject(new Error("Cleared"));
-        }
-      };
+        updateCaches(keys[i],null,undefined,undefined);
+      }
       localCache.clear();
     }
     var backingCache = ensureAsyncApi(options.createCache(afnID, { clear: clearLocalCache }));
@@ -126,32 +122,51 @@ module.exports = function (globalOptions) {
     } catch (ex) { }
 
     function updateCaches(key,backingCache,data,ttl){
-      var l = localCache.get(key);
       // If TTL is absent, the item remains in the cache "forever" (depends on cache semantics)
       var expires = typeof ttl === "number" ? Date.now() + ttl : undefined;
 
       return (function setValue(v,rejection){
         if (v === undefined) {
+          // `undefined` means clear this entry, since we never store 'undefined'
+          var l = localCache.get(key);
           localCache.delete(key);
           l && isThenable(l.value) && l.value.reject(rejection) ;
           return backingCache && backingCache.delete(key);
         } else if (isThenable(v)) {
-          if (typeof v.resolve !== "function" || typeof v.reject !== "function") {
-            // This is a "foreign" promise, and we need to chain to it to be
-            // able to force resolution/rejection
-            const foreign = v;
-            v = deferred();
-            foreign.then(v.resolve, v.reject);
+          // Update the caches to hold a Promise
+          var l = localCache.get(key);
+          if (!l) {
+            // This really shouldn't happen. It only is likely if
+            // a local entry has just expired while, or been cleared by an API
+            var d = deferred();
+            var l = { value: d, expires: expires };
+            localCache.set(key,l);
           }
-          localCache.set(key,{ value: v, expires: expires })
-          return v.then(setValue, 
-          function(x){
-            setValue(undefined,x);
-          })
+          // When the promise resolves, update ourselves again to replace the
+          // promise with a concrete value
+          v.then(setValue,
+            function(x){
+              setValue(undefined,x);
+            })
+          return backingCache && backingCache.set(key,l.value,ttl) ;
         } else {
+          // Update the caches to hold a real value
           var c = { value: v, expires: expires };
-          localCache.set(key,c);
-          l && isThenable(l.value) && l.value.resolve(v) ;
+          var l = localCache.get(key);
+          if (l) {
+            if (isThenable(l.value)) {
+              // Replace the local promise with the real value...
+              localCache.set(key,c);
+              // ...and resolve the Promise
+              l.value.resolve(v) ;
+            } else {
+              // We have already resolved this entry
+              l.value = v;
+              l.expires = expires;
+            }
+          } else {
+            localCache.set(key,c);
+          }
           return backingCache && backingCache.set(key,c,ttl) ;
         }
       })(data);
@@ -172,7 +187,7 @@ module.exports = function (globalOptions) {
         var currentOrigin = "miss";
         if (localEntry && localEntry.expires < now) {
           localEntry = undefined;
-          localCache.delete(key);
+          updateCaches(key,null,undefined,undefined); // Resolves anything still waiting for the expired Promise
           currentOrigin = "expired";
         }
   
@@ -185,25 +200,21 @@ module.exports = function (globalOptions) {
           localEntry = { value: deferred() };
           localCache.set(key, localEntry);
           l = noReturn;
-
-		
-          {
-            // This is placeholder Promise. A set() operation will cause this to resolve
-            // but we ensure resolution by timing out the get(), in case we don't call set()
-            var timerId = setTimeout(function () {
+          // This is placeholder Promise. A set() operation will cause this to resolve
+          // but we ensure resolution by timing out the get(), in case we don't call set()
+          var timerId = setTimeout(function () {
+            timerId = undefined;
+            origin && origin.push("getTimeOut")
+            localEntry.value.resolve();
+            localCache.delete(key);
+          }, options.asyncTimeOut * 1000);
+          function killTimer() { 
+            if (timerId) {
+              clearTimeout(timerId) 
               timerId = undefined;
-              origin && origin.push("getTimeOut")
-              localEntry.value.resolve();
-              localCache.delete(key);
-            }, options.asyncTimeOut * 1000);
-            function killTimer() { 
-              if (timerId) {
-                clearTimeout(timerId) 
-                timerId = undefined;
-              }
             }
-            localEntry.value.then(killTimer, killTimer);
           }
+          localEntry.value.then(killTimer, killTimer);
         } else {
           // Otherwise, return the cached entry - either a real value, or the Promise of one
           origin && origin.push(isThenable(localEntry.value)?"async":"sync");
@@ -247,7 +258,7 @@ module.exports = function (globalOptions) {
         // In this context (a cache set operation) the "ttl" parameter is ALWAYS in milliseconds
         if (data === undefined) {
           origin && origin.push("noUndefined")
-          options.log && options.log("Cannot store 'undefined' in afn async cache. Using 'null' instead");
+          options && options.log && options.log("Cannot store 'undefined' in afn async cache. Using 'null' instead");
           data = null;
         }
 
@@ -306,7 +317,7 @@ module.exports = function (globalOptions) {
           var entry = localCache.get(k);
           if (entry && entry.expires && entry.expires < now) {
             expired.push(k);
-            localCache.delete(k);
+            updateCaches(k,null,undefined,undefined);
           }
         }
         // Expire backing keys
