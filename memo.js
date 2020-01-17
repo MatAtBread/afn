@@ -110,8 +110,8 @@ module.exports = function (globalOptions) {
     var localCache = options.createLocalCache(afnID); // localCache is always stnchronous, like a Map
     function clearLocalCache() {
       var keys = localCache.keys();
-      for (var i in keys) {
-        updateCaches(keys[i],null,undefined,undefined);
+      for (var ki of keys) {
+        updateCaches(ki,null,undefined,undefined);
       }
       localCache.clear();
     }
@@ -297,8 +297,7 @@ module.exports = function (globalOptions) {
           for (var bk in backingKeys)
             keys.push(backingKeys[bk]);
           var localKeys = localCache.keys();
-          for (var i in localKeys) {
-            var k = localKeys[i];
+          for (var k of localKeys) {
             if (keys.indexOf(k) < 0)
               keys.push(k);
           }
@@ -312,8 +311,7 @@ module.exports = function (globalOptions) {
         if (now === undefined) now = Date.now();
         var keys = localCache.keys();
         var expired = [];
-        for (var i in keys) {
-          var k = keys[i];
+        for (var k of keys) {
           var entry = localCache.get(k);
           if (entry && entry.expires && entry.expires < now) {
             expired.push(k);
