@@ -39,6 +39,7 @@
   interface AsyncMap<K, V> {
     get(key: K): Promise<V | undefined>;
     has(key: K): Promise<boolean>;
+    ttl(key: K): Promise<number | undefined>;
     set(key: K, value: V): Promise<void>;
     set(key: K, value: V, ttl: number): Promise<void>;
     clear(): Promise<void>;
@@ -50,6 +51,7 @@
   /* memo.js - entry */
   interface MemoizedAsyncFunction<R, A extends any[]> extends MemoAsyncFunction<R,A> {
     clearCache(): Promise<any>;
+    peek(...args:A): undefined | null | Promise<undefined | null | { expires: number, value?: R }>;
   }
 
   interface MemoizerOrAsyncMapper {

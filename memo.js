@@ -25,6 +25,8 @@ module.exports = function (globalOptions) {
     return f && typeof f.then === "function";
   }
 
+  function identity(x){ return x}
+
   function deferred() {
     var props = {
       resolve: { value: null },
@@ -35,7 +37,7 @@ module.exports = function (globalOptions) {
       props.reject.value = reject;
     });
     // We attach a single, silent handler to suppress the unecessary warning about unhandled rejections
-    d.then(function(){},function(){});
+    d.then(identity,identity);
     Object.defineProperties(d, props)
     return d;
   }
@@ -270,6 +272,26 @@ module.exports = function (globalOptions) {
         updateCaches(key,backingCache,data,ttl);
         return noReturn;
       },
+      peek: async function(key) {
+        if (backingCache)
+          return backingCache.peek(key);
+        if (localCache.has(key)) {
+          var entry = localCache.get(key) ;
+          if (entry && entry.expires) {
+            if (entry.expires < Date.now())
+              return undefined; // Definitely expired
+
+            if (isThenable(entry.value)) {
+              return {
+                expires: entry.expires
+              }
+            } else {
+              return entry;
+            }
+          }
+        }
+        return undefined;
+      },
       has: async function(key) {
         if (localCache.has(key))
           return true ;
@@ -367,11 +389,11 @@ module.exports = function (globalOptions) {
         var origin = globalOptions.origin ? [] : undefined;
         var memoPromise ;
 
-        var key = getKey(this, arguments, options.key, afn);
+        var key = getKey(self, theseArgs, options.key, afn);
         if (key === undefined || key === null) {
           // Not cachable - maybe 'crypto' isn't defined?
           origin && origin.push("apicall");
-          var result = afn.apply(this, arguments);
+          var result = afn.apply(self, theseArgs);
           memoPromise = isThenable(result) ? result : Promise.resolve(result);
         } else {
           var value = cache.get(key, origin) ;
@@ -422,6 +444,12 @@ module.exports = function (globalOptions) {
       };
       memoed._flushLocal = function () {
         cache._flushLocal();
+      };
+      memoed.peek = function() {
+        var key = getKey(this, arguments, options.key, afn);
+        return (key === undefined || key === null) 
+          ? key
+          : cache.peek(key)
       };
       memoed.clearCache = async function () {
         if (cache.clear) {
