@@ -478,7 +478,7 @@ module.exports = function (globalOptions) {
           return (typeof spec) + "/" + hash(spec);
         return (typeof spec) + "/" + spec.toString();
       }
-      return hash({ self: self, args: args });
+      return hash({ self: self, args: args, salt: options.salt });
     }
   };
 
@@ -498,9 +498,8 @@ module.exports = function (globalOptions) {
       if (globalOptions.unOrderedArrays && Array.isArray(o)) {
         h.update("array/" + o.length + "/" + o.map(hash).sort());
       } else {
-        Object.keys(o).sort().map(function (k) {
-          return hashCode(h, k) + hashCode(h, o[k], m)
-        });
+        var keys = Object.keys(o).sort();
+        h.update(keys.join('-') + "/" + keys.map(function(k){ return hash(o[k])}));
       }
     } else {
       h.update((typeof o) + "/" + o.toString());

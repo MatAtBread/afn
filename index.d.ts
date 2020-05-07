@@ -4,6 +4,7 @@
     unOrderedArrays?: boolean,
     crypto?: string | ({createHash(algorithm:string):any /*{ update:()=>, digest(encoding:string)=>}*/}),
     hashEncoding?: string,
+    salt?: unknown
   }
 
   /* memo.js (memoization) */
