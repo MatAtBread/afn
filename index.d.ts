@@ -76,7 +76,7 @@
     <S extends {}>(a: S): Promise<{[k in keyof S]:UnPromise<S[k], MapErrorType>}>;
   
     // Async object field resolver
-    <S extends {}, R>(a: S, mapper:(key:keyof S, index:number, keys:string[]) => R): Promise<{[k in keyof S]:R | MapErrorType}>;
+    <S extends {}, R>(a: S, mapper:(key:keyof S, index:number, keys:string[]) => R): Promise<{[k in keyof S]: UnPromise<R, MapErrorType> | MapErrorType}>;
   
     MapError:MapErrorType;
   }

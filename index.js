@@ -1,5 +1,5 @@
 /* Async FunctioN utilities */
-require('nodent')();
+require('nodent')({ dontInstallRequireHook: true });
 /* Each function is in a separate file for easy pulling apart if you only want a subset */
 
 function afn(config){
