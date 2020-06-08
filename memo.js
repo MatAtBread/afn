@@ -20,7 +20,25 @@
  *  
  */
 
+
 module.exports = function (globalOptions) {
+  const timebase = { s: 1000, ms: 1, m: 60000, h: 3600000, d: 86400000 };
+  const timeRegexp = /([0-9.]+)(s|ms|m|h|d)/;
+  
+  function ttlInMs(value) {
+    if (typeof value === "undefined")
+      return;
+    if (typeof value === 'number')
+      return value * 1000; // Convert to ms
+    if (typeof value === 'string') {
+      var m = value.match(timeRegexp);
+      if (!m || !timebase[m[2]])
+        throw new Error("Unknown TTL format: " + value);
+      return parseFloat(m[1]) * timebase[m[2]];
+    }
+    throw new Error("Unknown TTL format: " + value);
+  }
+
   function isThenable(f) {
     return f && typeof f.then === "function";
   }
@@ -67,9 +85,6 @@ module.exports = function (globalOptions) {
   // The return value is always in 'ms' even though they aew all specified in seconds, EXCEPT
   // the lower0case 'ttl' member if it is a constant number.
 
-  const timebase = { s: 1000, ms: 1, m: 60000, h: 3600000, d: 86400000 };
-  const timeRegexp = /([0-9.]+)(s|ms|m|h|d)/;
-
   function time(spec, name, args) {
     var k = [name.toUpperCase(), name.toLowerCase()];
 
@@ -90,17 +105,7 @@ module.exports = function (globalOptions) {
               continue;
             }
           }
-          if (typeof value === "undefined")
-            return;
-          if (typeof value === 'number')
-            return value * 1000; // Convert to ms
-          if (typeof value === 'string') {
-            var m = value.match(timeRegexp);
-            if (!m || !timebase[m[2]])
-              throw new Error("Unknown TTL format: " + value);
-            return parseFloat(m[1]) * timebase[m[2]];
-          }
-          throw new Error("Unknown TTL format: " + value);
+          return ttlInMs(value)
         }
       }
     }
@@ -573,6 +578,6 @@ module.exports = function (globalOptions) {
     timer.unref()
 
   memo.hash = hash; // Other exports that are useful
-
+  memo.ttlInMs = ttlInMs;
   return memo;
 };

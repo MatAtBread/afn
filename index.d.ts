@@ -30,7 +30,7 @@
   interface MemoConfig<R, A extends any[]> extends BaseConfig {
     link?: string;
     key?: (self: any, args: A, fn: MemoAsyncFunction<R, A>, memo: MemoizerOrAsyncMapper) => any;
-    MRU?: number | string | ((self: any | undefined, args: A | undefined, result: R | undefined) => number | string);
+    MRU?: number | string | ((self: any | undefined, args: A | undefined, result: R | undefined) => number | string | undefined);
     TTL?: number | string | ((self: any | undefined, args: A | undefined, result: R | undefined) => number | string);
     asyncTimeOut?: number;
   }
@@ -58,25 +58,26 @@
   interface MemoizerOrAsyncMapper {
     <R, A extends any[]>(afn: MemoAsyncFunction<R, A>, opts?: MemoConfig<R, A>) : MemoizedAsyncFunction<R, A>;
     <K, V>(id: { name: string, key?: K, value?: V }, opts?: CacheConfig) : AsyncMap<K, V>;
-    hash: (source: any) => string;
+    hash(source: any) : string;
+    ttlInMs(value: undefined | string | number) : number;
   }
 
   /* map.js */
   type UnPromise<X, RejectionType> = X extends Promise<never> ? RejectionType | never : X extends Promise<infer Y> ? Y : X ;
 
   interface MapErrorType extends Error {}
-  interface MapFunction {
+  interface MapFunction<Thrower = { throwOnError: false }> {
     // Async counter
-    <R>(i: number, mapper: (n:number)=>Promise<R>): Promise<Array<R | MapErrorType>>;
+    <R>(i: number, mapper: (n:number)=>Promise<R>): Promise<Array<R | Thrower>>;
   
     // Async array mapper (default mapper is simply resolution)
-    <R, S>(a: Array<S>, mapper?: (s:S)=>Promise<R>): Promise<Array<R | MapErrorType>>;
+    <R, S>(a: Array<S>, mapper?: (s:S)=>Promise<R>): Promise<Array<R | Thrower>>;
   
     // Async object field resolver
-    <S extends {}>(a: S): Promise<{[k in keyof S]:UnPromise<S[k], MapErrorType>}>;
+    <S extends {}>(a: S): Promise<{[k in keyof S]:UnPromise<S[k], Thrower>}>;
   
     // Async object field resolver
-    <S extends {}, R>(a: S, mapper:(key:keyof S, index:number, keys:string[]) => R): Promise<{[k in keyof S]: UnPromise<R, MapErrorType> | MapErrorType}>;
+    <S extends {}, R>(a: S, mapper:(key:keyof S, index:number, keys:string[]) => R): Promise<{[k in keyof S]: UnPromise<R, Thrower> | Thrower}>;
   
     MapError:MapErrorType;
   }
@@ -96,15 +97,17 @@
 }
 
   /* afn.js */
+  interface AfnConfig {
+    memo?: MemoFactoryConfig;
+    map?: MapFactoryConfig;
+    hash?: HashConfig;
+    queue?: any;
+  }
+
   interface AfnLoader { 
-    (config: {
-      memo?: MemoFactoryConfig;
-      map?: MapFactoryConfig;
-      hash?: HashConfig;
-      queue?: any;
-    }) : {
+    <Config extends AfnConfig>(config: Config) : {
       memo: MemoizerOrAsyncMapper;
-      map: MapFunction;
+      map: MapFunction<Config["map"] extends { throwOnError: true } ? never : MapErrorType>;
       hash: (source: any) => string;
       queue: typeof AsyncQueue;
     };
