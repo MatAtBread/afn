@@ -70,7 +70,5 @@ async function runTests(implemenattion){
 (async () => {
   console.log("../memo")
   await runTests(require('../memo'))
-  console.log("../dist/memo")
-  await runTests(require('../dist/memo'))
   process.exit(0);
 })();

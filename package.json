@@ -1,11 +1,13 @@
 {
   "name": "afn",
   "version": "2.2.3",
+  "engines": {
+    "node": ">=10.0.0"
+  },
   "description": "async/await function utilities",
   "main": "index.js",
   "scripts": {
-    "test": "cd test ; npm i ; npm test ; cd ..",
-    "install": "nodentjs --dest=dist/ --use=promise --noruntime memo.js map.js queue.js hash.js"
+    "test": "cd test ; npm i ; npm test ; cd .."
   },
   "repository": {
     "type": "git",
@@ -23,8 +25,5 @@
     "url": "https://github.com/MatAtBread/afn/issues"
   },
   "homepage": "https://github.com/MatAtBread/afn#readme",
-  "dependencies": {
-    "nodent": "^3.2.11"
-  },
   "types": "index.d.ts"
 }

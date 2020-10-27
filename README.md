@@ -63,7 +63,6 @@ The function completes when all the aync-iteration function calls have completed
 
 ### Example: iterate through a set of integer values and do something asynchronous with each one
 
-	// Use nodent.map & http
 	var map = require('afn/map')() ;
 	var http = require('async-http-lib') ; // A third party module that does HTTP as async functions
 

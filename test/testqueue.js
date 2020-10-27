@@ -1,6 +1,3 @@
-'use nodent-promise {"noRuntime":true}' ;
-
-global.Promise = global.Promise || require('nodent').Thenable ;
 function sleep(t){
     return new Promise(resolve => setTimeout(resolve,t)) ;
 }
