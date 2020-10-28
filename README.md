@@ -6,21 +6,26 @@ Installation:
 
 	npm i --save afn
 
-Inclusion:
+Inclusion or one or more sub-modules:
 
-	var afn = require('afn')(options) ;
+	import { afn } from 'afn'; // ES6/TS module
+	const { map, memo, http, Queue } = afn(options);
 
-Specific calls can be required individually:
+	const { map, memo, http, Queue } = require('afn')(options); // JS
 
-	var map = require('afn/map')(mapOptions) ;
-	var memo = require('afn/memo')(memoOptions) ;
-	var Queue = require('afn/queue')(queueOptions) ;
+Specific sub-modules can be required individually:
+
+	const map = require('afn/map')(mapOptions) ;
+	const memo = require('afn/memo')(memoOptions) ;
+	const Queue = require('afn/queue')(queueOptions) ;
+	const http = require('afn/http')(queueOptions) ;
 
 Contents
 --------
 * [map](#map)
 * [memo](#memo)
 * [Queue](#queue)
+* [http](#http)
 
 map
 ===
@@ -63,7 +68,6 @@ The function completes when all the aync-iteration function calls have completed
 
 ### Example: iterate through a set of integer values and do something asynchronous with each one
 
-	// Use nodent.map & http
 	var map = require('afn/map')() ;
 	var http = require('async-http-lib') ; // A third party module that does HTTP as async functions
 
