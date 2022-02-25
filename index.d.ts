@@ -17,7 +17,7 @@ interface BaseConfig {
   createLocalCache?: (id: string) => Map<any, any>;
 }
 
-interface CacheConfig extends BaseConfig {
+export interface CacheConfig extends BaseConfig {
   TTL: number | string;
   log?: (...args: any[]) => void;
 }
@@ -30,7 +30,7 @@ interface MemoAsyncFunction<Return, Args extends any[]> {
   (...args: Args): Promise<Return>;
 }
 
-interface MemoConfig<R, A extends any[]> extends BaseConfig {
+export interface MemoConfig<R, A extends any[]> extends BaseConfig {
   link?: string;
   key?: (self: any, args: A, fn: MemoAsyncFunction<R, A>, memo: MemoizerOrAsyncMapper) => any;
   MRU?: number | string | ((self: any | undefined, args: A | undefined, result: R | undefined) => number | string | undefined);
@@ -116,7 +116,6 @@ declare namespace AsyncHttp {
   function get(options: NodeHttp.RequestOptions | string | URL): Promise<WaitableEvent & NodeHttp.IncomingMessage>;
   //async get(url: string | URL, options: NodeHttp.RequestOptions): Promise<WaitableEvent & NodeHttp.IncomingMessgae>;
   function getBody(options: NodeHttp.RequestOptions | string | URL): Promise<string>;
-
 }
 
 /* afn.js */
