@@ -449,6 +449,9 @@ module.exports = function (globalOptions) {
       memoed._flushLocal = function () {
         cache._flushLocal();
       };
+      memoed.key = function() {
+        return getKey(this, arguments, options.key, afn);
+      };
       memoed.peek = function() {
         var key = getKey(this, arguments, options.key, afn);
         return (key === undefined || key === null) 

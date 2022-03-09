@@ -56,6 +56,7 @@ interface AsyncMap<K, V> {
 interface MemoizedAsyncFunction<R, A extends any[]> extends MemoAsyncFunction<R, A> {
   clearCache(): Promise<any>;
   peek(...args: A): undefined | null | Promise<undefined | null | { expires: number, value?: R }>;
+  key(...args: A): undefined | null | Promise<undefined | null | string>;
 }
 
 interface MemoizerOrAsyncMapper {
